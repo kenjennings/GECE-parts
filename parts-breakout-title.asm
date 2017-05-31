@@ -822,7 +822,8 @@ End_DLI_1 ; End of routine.  Point to next routine.
 
 	rti
 
-	
+
+.local	
 ;===============================================================================
 ; ****   ******   **    *****
 ; ** **    **    ****  **  
@@ -832,7 +833,6 @@ End_DLI_1 ; End of routine.  Point to next routine.
 ; ****   ****** **  **  *****
 ;===============================================================================
 
-.local
 ;---------------------------------------------------------------------
 ; Write hex value of a byte to the DIAG1 screen line.
 ; INPUT:
@@ -871,6 +871,16 @@ DiagByte
 	.sbyte "0123456789ABCDEF"
 
 	
+	.MACRO DebugByte  ; Address, Y position
+		.IF %0<>2
+			.ERROR "DebugByte: incorrect number of arguments. 2 required!"
+		.ELSE
+			lda %1
+			ldy #%2
+			jsr DiagByte
+		.ENDIF
+	.ENDM
+	
 	
 .local
 ;===============================================================================
@@ -900,18 +910,50 @@ PRG_START
 	
 	lda #1
 	jsr MainSetTitle
+
+;===============================================================================
+; ****   ******   **    *****
+; ** **    **    ****  **  
+; **  **   **   **  ** **
+; **  **   **   **  ** ** ***
+; ** **    **   ****** **  **
+; ****   ****** **  **  *****
+;===============================================================================
 	
 FOREVER
-
+	
 	jsr WaitFrame
 	
-	lda TITLE_STOP_GO
-	ldy #0
-	jsr DiagByte
+;	.sbyte " SG PL TM HP SP GP VS CS CF SC WC CC DP "
 	
-	lda TITLE_PLAYING
-	ldy #3
-	jsr DiagByte
+	DebugByte TITLE_STOP_GO,         1 ; SG
+	
+	DebugByte TITLE_PLAYING,         4 ; PL
+
+	DebugByte TITLE_TIMER,           7 ; TM
+	
+	DebugByte TITLE_HPOSP0,         10 ; HP
+
+	DebugByte TITLE_SIZEP0,         13 ; SP
+	
+	DebugByte TITLE_GPRIOR,         16 ; GP
+	
+	DebugByte TITLE_VSCROLL,        19 ; VS
+	
+	DebugByte TITLE_CSCROLL,        22 ; CS
+	
+	DebugByte TITLE_CURRENT_FLYIN,  25 ; CF
+	
+	DebugByte TITLE_SCROLL_COUNTER, 28 ; SC
+	
+;	TITLE_WSYNC_OFFSET
+	
+	DebugByte TITLE_WSYNC_COLOR,    31 ; WC
+	
+	DebugByte TITLE_COLOR_COUNTER,  34 ; CC
+
+	DebugByte TITLE_DLI_PMCOLOR,    37 ; DP
+	
 	
 	jmp FOREVER
 
@@ -1012,6 +1054,15 @@ Setup
 
 
 .local
+;===============================================================================
+; **   **   **    ******  **  **
+; *** ***  ****     **    *** **
+; ******* **  **    **    ******
+; ** * ** **  **    **    ******
+; **   ** ******    **    ** ***
+; **   ** **  **  ******  **  ** 
+;===============================================================================
+
 ;===============================================================================
 ; MAIN SET TITLE
 ;===============================================================================
@@ -1173,7 +1224,7 @@ EMPTY_LINE ; 64 bytes of 0.
 ;===============================================================================
 
 DIAG0
-	.sbyte "SG PL TM HP SP GP VS CS CF SC WC CC DP  "
+	.sbyte " SG PL TM HP SP GP VS CS CF SC WC CC DP "
 
 DIAG1
 	.dc 40 $00
@@ -1588,6 +1639,7 @@ TITLE_GPRIOR = PARAM_14
 
 TITLE_VSCROLL = PARAM_15
 ; .byte 0 ; current fine scroll position. (0 to 7)
+
 TITLE_CSCROLL = PARAM_16
 ; .byte 0 ; current coarse scroll position. (0 to 4)
 
