@@ -341,9 +341,9 @@ Set_VBI
 	ldy #<Breakout_VBI ; LSB for routine
 	ldx #>Breakout_VBI ; MSB for routine
 
-	lda #7 ; Set Interrupt Vector 7 for Deferred VBI
+	lda #7             ; Set Interrupt Vector 7 for Deferred VBI
 
-	jsr SETVBV  ; and away we go.
+	jsr SETVBV         ; and away we go.
 
 	rts
 
@@ -354,7 +354,7 @@ Remove_VBI
 	ldy #<XITVBV ; LSB of JMP to end deferred VBI
 	ldx #>XITVBV ; MSB of JMP to end deferred VBI
 
-	lda #7 ; Set Interrupt Vector 7 for Deferred Vertical Blank Interrupt.
+	lda #7       ; Set Interrupt Vector 7 for Deferred Vertical Blank Interrupt.
 
 	jsr SETVBV  ; and away we go.
 
@@ -363,8 +363,8 @@ Remove_VBI
 
 .local
 ;
-; MAIN directs things to happen. The magic of that happening (is 
-; decided) here.  That is, much of the game guts, animation, and 
+; MAIN directs things to happen. The magic of that happening is 
+; (decided) here.  That is, much of the game guts, animation, and 
 ; timing either occurs here or is established here.  For the most 
 ; part, DLIs are only transferring values to registers per the
 ; directions determined here. 
@@ -383,9 +383,9 @@ Breakout_VBI
 ;	lda #>DISPLAY_LIST
 ;	sta SDLSTH
 	
-;	lda #<DLI_1 ; DLI Vector
+;	lda #<DISPLAY_LIST_INTERRUPT ; DLI Vector
 ;	sta VDSLST
-;	lda #>DLI_1
+;	lda #>DISPLAY_LIST_INTERRUPT
 ;	sta VDSLST+1
 	;
 	; Turn on Display List DMA
@@ -399,8 +399,8 @@ Breakout_VBI
 ;	lda #>PLAYER_MISSILE_BASE ; Player/Missile graphics memory.
 ;	sta PMBASE
 	
-;	lda TITLE_HPOSP0    ; set horizontal position for Player as Title character
-;	sta HPOSP0
+	lda TITLE_HPOSP0    ; set horizontal position for Player as Title character
+	sta HPOSP0
 	
 ;	lda #PM_SIZE_NORMAL ; set size for Player as Title character 
 ;	sta SIZEP0
@@ -422,8 +422,8 @@ Breakout_VBI
 ;	lda #0
 ;	sta VSCROL
 
-;	lda #>CHARACTER_SET_01 ; Character set for title
-;	sta CHBAS
+	lda #>CHARACTER_SET_01 ; Character set for title
+	sta CHBASE
 	
 
 	
@@ -459,21 +459,18 @@ Breakout_VBI
 	                   ; no. it is off.
 	lda TITLE_STOP_GO  ; Does main line want to start title?
 	bne Start_Title    ; Yes, begin title.
-;	beq End_Title      ; No.  Skip title things.
+
 	jmp End_Title      ; No.  Skip title things.
 
 Stop_Title  ; stop/zero everything.
 	        ; reset to empty title.
-
 	lda #0
 	sta TITLE_PLAYING
+	sta TITLE_CURRENT_FLYIN
 
 	sta TITLE_HPOSP0
 	sta TITLE_SIZEP0
-	sta TITLE_GPRIOR
 
-	sta TITLE_CURRENT_FLYIN
-	
 	ldx #0
 	jsr Update_Title_Scroll ; Set vertical scroll and DLI values
 	
@@ -482,8 +479,6 @@ Stop_Title  ; stop/zero everything.
 	lda #<TITLE_FRAME_EMPTY
 	sta DISPLAY_LIST_TITLE_VECTOR ; Empty scroll window
 	
-	bne Start_Title
-;	beq End_Title
 	jmp End_Title
 	
 Start_Title                 ; Step into the first phase -- pause before fly-in
@@ -498,38 +493,40 @@ Run_Title
 	lda TITLE_STOP_GO       ; Does Mainline want this to stop?
 	beq Stop_Title          ; 0. Yes. clean screen.
 
-	                        ; Always move the colors.
-	inc TITLE_COLOR_COUNTER ; next index in color table
-	lda TITLE_COLOR_COUNTER
-	cmp #43                 ; 42 is last color index for title colors.
-	bcc Title_Pause_1       ; No. Continue with next step.
-	lda #0                  ; Reset
-	sta TITLE_COLOR_COUNTER
+	ldx TITLE_COLOR_COUNTER ; Always move the colors.
+	inx                     ; next index in color table
+	cpx #43                 ; 42 is last color index for title colors.
+	bne Update_Color_Counter
+	ldx #0                  ; Reset
 
-Title_Pause_1               ; Pause before title 
+Update_Color_Counter
+	stx TITLE_COLOR_COUNTER
+  
+Title_Pause_1               ; Pause before title ?
 	ldy TITLE_PLAYING
 	cpy #1                  ; Is this #1 == Clear, no movement?
-	bne Title_FlyIn         ; No, things are in motion.
+	bne Title_FlyIn         ; No, things are in motion. go to next phase
 
-	dec TITLE_TIMER         ; Decrement timer
-	lda TITLE_TIMER         ; Is it still > 0 ?
-	beq SetDoFlyingText
-;	bne End_Title           ; Yes. Done messing with title until timer expires.
-	jmp End_Title           ; Yes. Done messing with title until timer expires.
+	ldx TITLE_TIMER
+	beq SetDoFlyingText     ; It is at 0, so initilize next phase.
+	dex                     ; Decrement timer
+	stx TITLE_TIMER
+	
+	jmp End_Title           ; Done messing with title until timer expires.
 
 SetDoFlyingText
 	lda #0                  ; No. Do Flying Text
 	sta TITLE_CURRENT_FLYIN ; start at first character in list
-	sta TITLE_HPOSP0         ; reset HPOS to off screen.
+	sta TITLE_HPOSP0        ; reset HPOS to off screen.
 
-	tax ; to update TITLE_SCROLL_COUNTER 
+	tax                     ; to update TITLE_SCROLL_COUNTER 
 	jsr Update_Title_Scroll  
 
 	jsr Clear_Title_Lines
 
 	ldy #2                  ; Engage fly-in
 	sty TITLE_PLAYING
-;	bne End_Title
+
 	jmp End_Title
 
 ; FLY IN:  Things going on....
@@ -539,13 +536,14 @@ SetDoFlyingText
 ; All letters are displayed, set mode to  Pause to admire the title.
 Title_FlyIn 
 	ldy TITLE_PLAYING
-	cpy #2; Is this #2 == Text fly-in is in progress.
+	cpy #2 ; Is this #2 == Text fly-in is in progress.
 	bne Title_Pause_2
 
 	ldx TITLE_HPOSP0 ; if this is non-zero then a letter is in motion
 	bne FlyingChar
+	
 	ldx TITLE_CURRENT_FLYIN ; if this is 8 then we should  be in admiration mode
-	cpx #8  ; The scroller will reset this to 0 when done.
+	cpx #8 ; The scroller will reset this to 0 when done.
 	bne FlyInStartChar
 	
 	ldy #3 ; DONE. Set to do the next step -- pause for admiration.
@@ -570,32 +568,33 @@ FlyInStartChar
 	lda TITLE_DLI_COLPM_TABLE_HI,y
 	sta ZTITLE_COLPM0+1 
 
-Copy_Char_Image_To_PM
-	ldy TITLE_PM_IMAGE_LIST,x ; get starting image offset for character
-	ldx #25 ; destination scan line
+	; Copy character image to Player
+	ldy TITLE_PM_IMAGE_LIST,x    ; get starting image offset for character
+	ldx #25                      ; destination scan line 
 CopyCharToPM
-	lda CHARACTER_SET_01+$A8,y ; copy from character set
-	sta PMADR_BASE0,x ; to the P/M image memory
+	lda [CHARACTER_SET_01+$A8],y ; copy from character set
+	sta PMADR_BASE0,x            ; to the P/M image memory
 	iny
 	inx
-	cpx #41 ; ending scan line (16 total) 
+	cpx #41                      ; ending scan line (16 total) 
 	bne CopyCharToPM
 
 	ldx TITLE_HPOSP0
-
+    
 ; FLY IN PART 2 - Move the current P/M character
 FlyingChar
 	dex ; move P/M left 2 color clocks
+    beq ?Update_Title_HPOS
 	dex
-	stx TITLE_HPOSP0; and set it.
-	txa  ; needs to be in A so we can compare from a table.
+?Update_Title_HPOS
+	stx TITLE_HPOSP0 ; and set it.
+	txa             ; needs to be in A so we can compare from a table.
 	ldx TITLE_CURRENT_FLYIN 
 	cmp TITLE_PM_TARGET_LIST,x ; destination PM position for character
 	bne Title_Pause_2
 	; the flying P/M has reached target position. 
 	; Replace it with the character on screen.
-	lda TITLE_PM_CHAR_POS,x ; get corresponding character postition.
-	tay
+	ldy TITLE_TEXT_CHAR_POS,x ; get corresponding character postition.
 	lda TITLE_CHAR_LIST,x ; get character
 	sta TITLE_LINE0,y ; top half of title
 	clc
@@ -650,8 +649,8 @@ Title_Update
 ; End of Title section.
 End_Title
 
-	lda #12
-		sta TITLE_WSYNC_COLOR
+;	lda #12
+;		sta TITLE_WSYNC_COLOR
 
 ;===============================================================================
 ; THE END OF USER DEFERRED VBI ROUTINE 
@@ -690,9 +689,9 @@ Update_Title_Scroll
 	ldy TITLE_COLOR_COUNTER
 	iny ; next index in color table
 	cpy #43 ; 42 is last color index for title colors.
-	bne Update_Color_Counter 
+	bne ?Update_Color_Counter 
 	ldy #0
-Update_Color_Counter	
+?Update_Color_Counter	
 	sty TITLE_COLOR_COUNTER
 
 End_Update_Title_Scroll	
@@ -706,11 +705,11 @@ Clear_Title_Lines
 	lda #0 ; clear/blank space
 	ldx #7 ; 8 characters in title
 Clear_Title_Char
-	ldy TITLE_PM_CHAR_POS,x ; Get character offset
+	ldy TITLE_TEXT_CHAR_POS,x ; Get character offset
 	sta TITLE_LINE0,y  ; clear first line
 	sta TITLE_LINE1,y  ; clear second line
 	dex
-	bpl Clear_Title_Lines
+	bpl Clear_Title_Char
 	
 	rts
 
@@ -772,11 +771,9 @@ DLI_Loop_Color_Bars
 	sta WSYNC
 	sta COLPM0
 
-	lda TITLE_COLPF1,y
+	lda TITLE_COLPF0,y
 	sta COLPF0
 
-	sta COLBK
-	
 	lda TITLE_COLPF1,y
 	sta COLPF1
 
@@ -791,10 +788,64 @@ DLI_Loop_Color_Bars
 	bne DLI_Loop_Color_Bars
 
 End_DLI_1 ; End of routine.  Point to next routine.
-	lda #<DLI_1
+	lda #<DLI_2
 	sta VDSLST
-	lda #>DLI_1
+	lda #>DLI_2
 	sta VDSLST+1
+	
+	pla ; Restore registers for exit
+	tay
+	pla
+	tax
+	pla
+
+	rti
+
+
+
+DLI_2
+	pha
+	txa
+	pha
+	tya
+	pha
+
+	; GTIA Fifth Player.
+	lda #[FIFTH_PLAYER|1] ; Missiles = COLPF3.  Player/Missiles Priority on top.
+	sta PRIOR
+	sta HITCLR
+
+	; Screen parameters...
+	lda #[ENABLE_DL_DMA|ENABLE_PM_DMA|PLAYFIELD_WIDTH_NORMAL|PM_1LINE_RESOLUTION]
+	STA WSYNC
+	sta DMACTL
+
+	; Top thumper-bumper.  Only set color.  The rest of the animation is
+	; done in the Display list and set by the VBI.
+;	lda THUMPER_COLOR_TOP
+;	sta COLPF0
+
+	; Left thumper-bumper -- Player 3. P/M color, position, and size.
+;	lda THUMPER_COLOR_LEFT
+;	sta COLPM3
+
+;	ldy THUMPER_FRAME_LEFT        ; Get animation frame
+;	lda THUMPER_LEFT_HPOS_TABLE,y ; P/M position
+;	sta HPOSP3
+;	lda THUMPER_LEFT_SIZE_TABLE,y ; P/M size
+;	sta SIZEP3
+
+	; Right thumper-bumper -- Missile 0.  Set P/M color, position, and size.
+;	lda THUMPER_COLOR_RIGHT
+;	sta COLPF3 ; because 5th player is enabled.
+
+;	ldy THUMPER_FRAME_RIGHT        ; Get animation frame
+;	lda THUMPER_RIGHT_HPOS_TABLE,y ; P/M position
+;	sta HPOSM0
+;	lda THUMPER_RIGHT_SIZE_TABLE,y ; P/M size
+;	sta SIZEM
+
+
 
 
 ;===============================================================================
@@ -813,14 +864,24 @@ End_DLI_1 ; End of routine.  Point to next routine.
 	lda #$0A
 	sta COLPF2
 	
-	
-	pla ; Restore registers for exit
+
+
+
+End_DLI_2 ; End of routine.  Point to next routine.
+	lda #<DLI_1
+	sta VDSLST
+	lda #>DLI_1
+	sta VDSLST+1
+
+	pla
 	tay
 	pla
 	tax
 	pla
 
 	rti
+
+
 
 
 .local	
@@ -832,6 +893,8 @@ End_DLI_1 ; End of routine.  Point to next routine.
 ; ** **    **   ****** **  **
 ; ****   ****** **  **  *****
 ;===============================================================================
+
+DIAG_TEMP1 = PARAM_89 ; = $d0 ; DIAG_TEMP1
 
 ;---------------------------------------------------------------------
 ; Write hex value of a byte to the DIAG1 screen line.
@@ -852,7 +915,7 @@ DiagByte
 	lsr
 	lsr
 	tax 
-	lda NYBBLE_TO_HEX,x  ; simplify. no math. just lookup table.
+	lda ?NYBBLE_TO_HEX,x  ; simplify. no math. just lookup table.
 
 	sta DIAG1,y
 	
@@ -860,7 +923,7 @@ DiagByte
 
 	and #$0F             ; low nybble is second character
 	tax
-	lda NYBBLE_TO_HEX,x  ; simplify. no math.  just lookup table.
+	lda ?NYBBLE_TO_HEX,x  ; simplify. no math.  just lookup table.
 
 	iny
 	sta DIAG1,y
@@ -871,16 +934,16 @@ DiagByte
 	.sbyte "0123456789ABCDEF"
 
 	
-	.MACRO DebugByte  ; Address, Y position
-		.IF %0<>2
-			.ERROR "DebugByte: incorrect number of arguments. 2 required!"
-		.ELSE
+	.macro mDebugByte  ; Address, Y position
+		.if %0<>2
+			.error "DebugByte: incorrect number of arguments. 2 required!"
+		.else
 			lda %1
 			ldy #%2
 			jsr DiagByte
-		.ENDIF
-	.ENDM
-	
+		.endif
+	.endm
+
 	
 .local
 ;===============================================================================
@@ -924,35 +987,35 @@ FOREVER
 	
 	jsr WaitFrame
 	
-;	.sbyte " SG PL TM HP SP GP VS CS CF SC WC CC DP "
+;	.sbyte " SG PL TM HP VS CS CF WO WC CC DP "
 	
-	DebugByte TITLE_STOP_GO,         1 ; SG
+	mDebugByte TITLE_STOP_GO,         1 ; SG
 	
-	DebugByte TITLE_PLAYING,         4 ; PL
+	mDebugByte TITLE_PLAYING,         4 ; PL
 
-	DebugByte TITLE_TIMER,           7 ; TM
+	mDebugByte TITLE_TIMER,           7 ; TM
 	
-	DebugByte TITLE_HPOSP0,         10 ; HP
+	mDebugByte TITLE_HPOSP0,         10 ; HP
 
-	DebugByte TITLE_SIZEP0,         13 ; SP
+;	mDebugByte TITLE_SIZEP0,         13 ; SP
 	
-	DebugByte TITLE_GPRIOR,         16 ; GP
+;	mDebugByte TITLE_GPRIOR,         13 ; GP
 	
-	DebugByte TITLE_VSCROLL,        19 ; VS
+	mDebugByte TITLE_VSCROLL,        13 ; VS
 	
-	DebugByte TITLE_CSCROLL,        22 ; CS
+	mDebugByte TITLE_CSCROLL,        16 ; CS
 	
-	DebugByte TITLE_CURRENT_FLYIN,  25 ; CF
+	mDebugByte TITLE_CURRENT_FLYIN,  19 ; CF
 	
-	DebugByte TITLE_SCROLL_COUNTER, 28 ; SC
+	mDebugByte TITLE_SCROLL_COUNTER, 22 ; SC
 	
-;	TITLE_WSYNC_OFFSET
+	mDebugByte TITLE_WSYNC_OFFSET,   25 ; WO
 	
-	DebugByte TITLE_WSYNC_COLOR,    31 ; WC
+	mDebugByte TITLE_WSYNC_COLOR,    28 ; WC
 	
-	DebugByte TITLE_COLOR_COUNTER,  34 ; CC
+	mDebugByte TITLE_COLOR_COUNTER,  31 ; CC
 
-	DebugByte TITLE_DLI_PMCOLOR,    37 ; DP
+	mDebugByte TITLE_DLI_PMCOLOR,    34 ; DP
 	
 	
 	jmp FOREVER
@@ -1003,14 +1066,12 @@ Setup
 	
 	lda #<DISPLAY_LIST ; Display List
 	sta SDLSTL
-;	sta DLISTL
 	lda #>DISPLAY_LIST
 	sta SDLSTH
-;	sta DLISTH
 	
-	lda #<DLI_1 ; DLI Vector
+	lda #<DISPLAY_LIST_INTERRUPT ; DLI Vector
 	sta VDSLST
-	lda #>DLI_1
+	lda #>DISPLAY_LIST_INTERRUPT
 	sta VDSLST+1
 	;
 	; Turn on Display List DMA
@@ -1048,10 +1109,21 @@ Setup
 	sta VSCROL
 
 	lda #>CHARACTER_SET_01 ; Character set for title
-;	sta CHBAS
+	sta CHBASE
 	
+;	ldx #$FF
+;?Copy_Charset_to_PM
+;	lda $e008,x
+;	sta PMADR_BASE0,x
+;	dex
+;	bne ?Copy_Charset_to_PM
+	
+;	lda #$0F
+;	sta COLPM0
+	 
 	rts 
 
+   
 
 .local
 ;===============================================================================
@@ -1143,12 +1215,12 @@ exit_waitFrame
 
 ; Using 2K boundary for single-line 
 ; resolution Player/Missiles
-PLAYER_MISSILE_BASE = *
-PMADR_MISSILE = PLAYER_MISSILE_BASE+$300
-PMADR_BASE0 = PLAYER_MISSILE_BASE+$400
-PMADR_BASE1 = PLAYER_MISSILE_BASE+$500
-PMADR_BASE2 = PLAYER_MISSILE_BASE+$600
-PMADR_BASE3 = PLAYER_MISSILE_BASE+$700
+PLAYER_MISSILE_BASE
+PMADR_MISSILE = [PLAYER_MISSILE_BASE+$300]
+PMADR_BASE0 =   [PLAYER_MISSILE_BASE+$400]
+PMADR_BASE1 =   [PLAYER_MISSILE_BASE+$500]
+PMADR_BASE2 =   [PLAYER_MISSILE_BASE+$600]
+PMADR_BASE3 =   [PLAYER_MISSILE_BASE+$700]
 
 ; Align to the boundary after Player/missile bitmaps
 ; ( *= $8800 )
@@ -1199,11 +1271,11 @@ CHARACTER_SET_01
 ; Memory for scrolling title
 ;
 TITLE_LINE0
-	.sbyte " B R E A K O U T B R E A K O U T B R E A K O U T B R E A K O U T"
-;;	.dc $0040 $00 ; 64 bytes for left/right scroll. Relative +$0200
+;	.sbyte " o U o U o U o U o U o U o U o U o U o U o U o U o U o U o U o U"
+	.dc $0040 $00 ; 64 bytes for left/right scroll. Relative +$0200
 TITLE_LINE1
-	.sbyte " O U T B R E A K O U T B R E A K O U T B R E A K O U T B R E A K"
-;;	.dc $0040 $00 ; 64 bytes for left/right scroll. Relative +$0240
+;	.sbyte " o U o U o U o U o U o U o U o U o U o U o U o U o U o U o U o U"
+	.dc $0040 $00 ; 64 bytes for left/right scroll. Relative +$0240
 
 
 
@@ -1224,7 +1296,7 @@ EMPTY_LINE ; 64 bytes of 0.
 ;===============================================================================
 
 DIAG0
-	.sbyte " SG PL TM HP SP GP VS CS CF SC WC CC DP "
+	.sbyte " SG PL TM HP VS CS CF SC WO WC CC DP    "
 
 DIAG1
 	.dc 40 $00
@@ -1266,10 +1338,10 @@ TITLE_FRAME0
 	.word EMPTY_LINE
 ; Scan line 25-32,   screen lines 18-25,    Mode 6 text, scrolling
 	.byte DL_TEXT_6|DL_LMS|DL_VSCROLL|DL_HSCROLL
-	.word TITLE_LINE0+20 ; Text is at +22.  HSCROLL=4 to center text
+	.word [TITLE_LINE0+20] ; Text is at +22.  HSCROLL=4 to center text
 ; Scan line 33-40,   screen lines 26-33,    Mode 6 text, scrolling
 	.byte DL_TEXT_6|DL_LMS|DL_VSCROLL|DL_HSCROLL
-	.word TITLE_LINE1+20
+	.word [TITLE_LINE1+20]
 ; Scan line 41,      screen lines 34,       8 (1) blank lines, No scrolling -- sacrifice line
 	.byte DL_BLANK_8|DL_DLI ; DLI for Horizontal Thumper Bumper
 ; Return to main display list
@@ -1282,10 +1354,10 @@ TITLE_FRAME1
 	.word EMPTY_LINE
 ; Scan line 17-24,   screen lines 10-17,    Mode 6 text, scrolling
 	.byte DL_TEXT_6|DL_LMS|DL_VSCROLL|DL_HSCROLL
-	.word TITLE_LINE0+20
+	.word [TITLE_LINE0+20]
 ; Scan line 25-32,   screen lines 18-25,    Mode 6 text, scrolling
 	.byte DL_TEXT_6|DL_LMS|DL_VSCROLL|DL_HSCROLL
-	.word TITLE_LINE1+20
+	.word [TITLE_LINE1+20]
 ; Scan line 33-40,   screen lines 26-33,    Mode 6 text, scrolling
 	.byte DL_TEXT_6|DL_LMS|DL_VSCROLL|DL_HSCROLL
 	.word EMPTY_LINE
@@ -1298,10 +1370,10 @@ TITLE_FRAME1
 TITLE_FRAME2
 ; Scan line 9-16,    screen lines 2-9,      Mode 6 text, scrolling
 	.byte DL_TEXT_6|DL_LMS|DL_VSCROLL|DL_HSCROLL
-	.word TITLE_LINE0+20
+	.word [TITLE_LINE0+20]
 ; Scan line 17-24,   screen lines 10-17,    Mode 6 text, scrolling
 	.byte DL_TEXT_6|DL_LMS|DL_VSCROLL|DL_HSCROLL
-	.word TITLE_LINE1+20
+	.word [TITLE_LINE1+20]
 ; Scan line 25-32,   screen lines 18-25,    Mode 6 text, scrolling
 	.byte DL_TEXT_6|DL_LMS|DL_VSCROLL|DL_HSCROLL
 	.word EMPTY_LINE
@@ -1317,7 +1389,7 @@ TITLE_FRAME2
 TITLE_FRAME3
 ; Scan line 9-16,    screen lines 2-9,      Mode 6 text, scrolling
 	.byte DL_TEXT_6|DL_LMS|DL_VSCROLL|DL_HSCROLL
-	.word TITLE_LINE1+20
+	.word [TITLE_LINE1+20]
 ; Scan line 17-24,   screen lines 10-17,    Mode 6 text, scrolling
 	.byte DL_TEXT_6|DL_LMS|DL_VSCROLL|DL_HSCROLL
 	.word EMPTY_LINE
@@ -1564,9 +1636,6 @@ DISPLAY_LIST_TITLE_RTS ; return destination for title scrolling "routine"
 	.word DIAG1
 	.byte $70,$70,$70,$70
 
-
-
-
 	; Finito.
 	.byte DL_JUMP_VB
 	.word DISPLAY_LIST
@@ -1627,7 +1696,6 @@ TITLE_PLAYING = PARAM_10
 TITLE_TIMER = PARAM_11
 ; .byte 0 ; set by Title handler for pauses.
 
-
 TITLE_HPOSP0 = PARAM_12
 ; .byte 0 ; Current P/M position of fly-in letter. or 0 if no letter.
 
@@ -1643,7 +1711,6 @@ TITLE_VSCROLL = PARAM_15
 TITLE_CSCROLL = PARAM_16
 ; .byte 0 ; current coarse scroll position. (0 to 4)
 
-
 ; Display List -- Title Scrolling coarse scroll conditions.
 ;
 TITLE_FRAME_TABLE
@@ -1653,7 +1720,6 @@ TITLE_FRAME_TABLE
 	.byte <TITLE_FRAME2
 	.byte <TITLE_FRAME3
 
-
 TITLE_CURRENT_FLYIN = PARAM_17
 ; .byte 0 ; current index (0 to 7) into tables for visible stuff in table below.
 
@@ -1661,21 +1727,21 @@ TITLE_CURRENT_FLYIN = PARAM_17
 ; is the character set base + $A8.  Use that as starting address 
 ; and add the following.  Basically a table of Nth character * 16.
 TITLE_PM_IMAGE_LIST ; beginning offset into character set to copy image data to Player
-	.byte $00,$10,$20,$30,$40,$50,$60,$70
+	.byte $60,$70,$80,$90,$a0,$b0,$c0,$d0
 
 TITLE_PM_TARGET_LIST ; Player target HPOS
 	entry .= 0
 	.rept 8 ; repeat for 8 characters
-	.byte >[PLAYFIELD_LEFT_EDGE_NARROW+4+entry]
+	.byte [PLAYFIELD_LEFT_EDGE_NARROW+4+entry]
 	entry .= entry+16 ; next entry in table.
 	.endr
 
 ; B R E A K O U T custom chars in different COLPF values
 TITLE_CHAR_LIST ; Screen byte of first (top) half of each character 
-	.byte $15,$17+$40,$19+$80,$1b+$C0
-	.byte $1d,$1f+$40,$21+$80,$23+$C0 
+	.byte $21,$23+$40,$25+$80,$27+$C0
+	.byte $29,$2b+$40,$2d+$80,$2f+$C0 
 
-TITLE_PM_CHAR_POS ; Title Line offset for each character
+TITLE_TEXT_CHAR_POS ; Title Line offset for each character
 	.byte 22,24,26,28,30,32,34,36 
 
 ; The following tables vertically scroll the title up 
@@ -1718,7 +1784,6 @@ TITLE_COLOR_COUNTER_PLUS ; Flag to double-increment COLOR_COUNTER when losing li
 
 TITLE_SCROLL_COUNTER = PARAM_18 
 ; .byte 0 ; index into the tables above. 0 to 32
-
 
 ; DLI parts.
 TITLE_WSYNC_OFFSET = PARAM_19
@@ -2021,16 +2086,6 @@ TITLE_COLPF3 ; "Yellow"
 	.byte COLOR_LITE_ORANGE+$04 ;(28) 
 	.byte COLOR_LITE_ORANGE+$02 ;(29) 
 
-
-
-
-TITLE_TEXT0
-;	.sbyte "  B R E A K O U T   "
-	.sbyte " B R E A K O U T B R E A K O U T B R E A K O U T B R E A K O U T"
-T
-ITLE_TEXT1
-;	.sbyte "  B R E A K O U T   "
-	.sbyte " B R E A K O U T B R E A K O U T B R E A K O U T B R E A K O U T"
 
 
 
