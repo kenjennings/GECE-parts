@@ -158,7 +158,7 @@ PADDLE_MAX = (PLAYFIELD_RIGHT_EDGE_NORMAL-PLAYFIELD_LEFT_EDGE_NORMAL-11)
 
 
 ;===============================================================================
-;    ZERO PAGE VARIABLES
+;    PAGE ZERO VARIABLES
 ;===============================================================================
 ; These will be used when needed to pass extra parameters to 
 ; routines when you can't use A, X, Y registers for other reasons.
@@ -325,6 +325,8 @@ ZBALL_COUNT =   PARAM_79 ; .byte $05
 
 
 ZBRICK_BASE =   ZEROPAGE_POINTER_8 ; $EC - Pointer to start of bricks on a line.
+
+ZTITLE_COLPM0 = ZEROPAGE_POINTER_9 ; $EE - VBI sets for DLI to use
 
 
 
