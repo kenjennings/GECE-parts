@@ -1079,8 +1079,17 @@ DISPLAY_LIST_THUMPER_RTS ; destination for animation routine return.
 
 	.byte DL_BLANK_8
 	.byte DL_BLANK_8
-	.byte DL_BLANK_7|DL_DLI 
+;	.byte DL_BLANK_7|DL_DLI 
+
+	; Delineate end of DLI VSCROLL area
+	.byte DL_BLANK_5  ; 5 + 1 mode C below + 1 blank below = 7 commented above
+	.byte DL_MAP_C|DL_LMS
+;	.word BRICK_LINE0+[entry*$40] ; not immediately offset into middle of graphics line
+	.word BRICK_LINE_MASTER 	
+	.byte DL_BLANK_1|DL_DLI
+	 
 	.byte DL_BLANK_1
+	
 	; DLI3: Hkernel 8 times....
 	;      Set HSCROLL for line, VSCROLL = 5, then Set COLPF0 for 5 lines.
 	;      Reset VScroll to 1 (allowing 2 blank lines.)
@@ -1138,6 +1147,10 @@ BRICK_BASE
 	; This is 8 blank lines +  8 * 10 scan lines plus 7 blank lines.
 	; These are ANTIC Mode 3 lines so each is 10 scan lines tall.
 
+
+	; Delineate end of VSCROLL area
+	.byte DL_MAP_C|DL_LMS
+	.word BRICK_LINE_MASTER 	
 
 
 
@@ -2481,6 +2494,26 @@ DLI3_DO_BOOM_AND_BRICKS
 	inx                   ; next row of bricks
 	cpx #8
 	bne DLI3_DO_BOOM_AND_BRICKS
+
+	; Have to continue the VSCROL abuse in order to leave the proper
+	; two scan lines after the bricks.
+
+; Current position is 
+; 5 == LINE 1 of 2 BLANK for boom blocks which means we're at
+; the ending line of a boom block for the prior brick row.
+	
+	sta WSYNC ; drop to the top of the next boom block lines.
+
+; 6 == LINE 2 of 2 BLANK
+	
+	lda #1 ; the blank instruction scan lines numbered 0, 1
+	sta WSYNC
+	
+; - DONE
+
+	sta VSCROL ; Reset to finish displaying the blank lines.
+
+
 
 End_DLI_3 ; End of routine.  Point to next routine.
 	lda #<DLI_4
