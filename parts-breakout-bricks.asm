@@ -1119,6 +1119,9 @@ BRICK_BASE
 ;	.word BRICK_LINE0+[entry*$40] ; not immediately offset into middle of graphics line
 	.word [GAMEOVER_LINE0+[entry*20]-2] 
 
+	
+; Temporarily test layout and spacing without the DLI/VSCROL trickery.
+
 ;	.byte DL_MAP_C|DL_LMS|DL_HSCROLL
 ;	.word BRICK_LINE0+[entry*$40] ; not immediately offset into middle of graphics line
 ;	.word [GAMEOVER_LINE0+[entry*20]-2]
