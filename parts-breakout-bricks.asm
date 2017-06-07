@@ -1081,11 +1081,14 @@ DISPLAY_LIST_THUMPER_RTS ; destination for animation routine return.
 	.byte DL_BLANK_8
 ;	.byte DL_BLANK_7|DL_DLI 
 
+; DIAGNOSTIC ** START
 	; Delineate end of DLI VSCROLL area
 	.byte DL_BLANK_5  ; 5 + 1 mode C below + 1 blank below = 7 commented above
 	.byte DL_MAP_C|DL_LMS
 ;	.word BRICK_LINE0+[entry*$40] ; not immediately offset into middle of graphics line
 	.word BRICK_LINE_MASTER 	
+; DIAGNOSTIC ** END
+
 	.byte DL_BLANK_1|DL_DLI
 	 
 	.byte DL_BLANK_1
@@ -1119,7 +1122,7 @@ BRICK_BASE
 ;	.word BRICK_LINE0+[entry*$40] ; not immediately offset into middle of graphics line
 	.word [GAMEOVER_LINE0+[entry*20]-2] 
 
-	
+; DIAGNOSTIC ** START	
 ; Temporarily test layout and spacing without the DLI/VSCROL trickery.
 
 ;	.byte DL_MAP_C|DL_LMS|DL_HSCROLL
@@ -1137,6 +1140,7 @@ BRICK_BASE
 ;	.byte DL_MAP_C|DL_LMS|DL_HSCROLL
 ;	.word BRICK_LINE0+[entry*$40] ; not immediately offset into middle of graphics line
 ;	.word [GAMEOVER_LINE0+[entry*20]-2]
+; DIAGNOSTIC ** END
 
 	; two blank scan line
 	.byte DL_BLANK_2
