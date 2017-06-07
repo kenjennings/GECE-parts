@@ -36,7 +36,7 @@ The vertical coarse scrolling isn't even done by updating the LMS addresses.   I
 
 ================================================================================
 
-Breakout Border Bumpers Line
+Breakout Border Bumpers
 
 ================================================================================
 
