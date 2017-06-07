@@ -5,6 +5,8 @@ Test/Demo GECE components individually to reduce development/debugging complexit
 
 [![TitleScreenGrab](https://github.com/kenjennings/GECE-parts/blob/master/parts-title-pic.png)](#features)
 
+Video Here: https://youtu.be/UVcj-sRZLmk
+
 The letters for the individual characters fly in from the right, one at a time to spell out the title.
 Four raster bar/gradient color cycles move across the eight characters the entire time they are visible. 
 After enjoying the title for a couple second the title vertically fine scrolls up off the screen to disappear.
@@ -29,6 +31,8 @@ The vertical coarse scrolling isn't even done by updating the LMS addresses.   I
 
 [![ThumperScreenGrab](https://github.com/kenjennings/GECE-parts/blob/master/parts-thumper-pic.png)](#features)
  
+Video Here: https://youtu.be/aOLbqgy6q6A
+
 As the ball approaches the top or side borders the bumper force field charges up.  When the ball strikes the border bumper then the force field violently recoils.
 
 The left and right sides are animated by manipulating Player/Missile objects.
