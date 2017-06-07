@@ -1,9 +1,9 @@
 # GECE-parts
 Test/Demo GECE components individually to reduce development/debugging complexity.
 
-** Title Line **
+** Breakout Title Line **
 
-[![TitleScreenGrab](https://github.com/kenjennings/GECE-parts/blob/master/AtariMLP.png)](#features)
+[![TitleScreenGrab](https://github.com/kenjennings/GECE-parts/blob/master/parts-title-pic.png)](#features)
 
 The letters for the individual characters fly in from the right, one at a time to spell out the title.
 Four raster bar/gradient color cycles move across the eight characters the entire time they are visible. 
