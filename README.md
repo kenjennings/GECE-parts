@@ -3,7 +3,9 @@ Test/Demo GECE components individually to reduce development/debugging complexit
  
  
 ================================================================================
+
 Breakout Title Line 
+
 ================================================================================
 
 [![TitleScreenGrab](https://github.com/kenjennings/GECE-parts/blob/master/parts-title-pic.png)](#features)
