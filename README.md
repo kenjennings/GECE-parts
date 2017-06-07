@@ -25,3 +25,17 @@ The vertical coarse scrolling isn't even done by updating the LMS addresses.   I
 
 
 
+** Breakout Border Bumpers Line **
+
+[![ThumperScreenGrab](https://github.com/kenjennings/GECE-parts/blob/master/parts-thumper-pic.png)](#features)
+ 
+As the ball approaches the top or side borders the bumper force field charges up.  When the ball strikes the border bumper then the force field violently recoils.
+
+The left and right sides are animated by manipulating Player/Missile objects.
+
+The top border is a series of animated playfield frames cycled through the display list.  Like the coarse scroll update in the Title section this is done with one update to a Jump instruction in the main display list that points to one of several small display lists showing different states of the bumper animation.
+
+This looked weird when the code ran the animations at 60 fps.  I cut down the speed to one update every other frame which improved the perceived effect.   Still not thrilled with this.  The proximity part may get changed.
+
+
+
