@@ -2,11 +2,11 @@
 Test/Demo GECE components individually to reduce development/debugging complexity.
  
  
-================================================================================
+=============================================================
 
 Breakout Title Line 
 
-================================================================================
+=============================================================
 
 [![TitleScreenGrab](https://github.com/kenjennings/GECE-parts/blob/master/parts-title-pic.png)](#features)
 
@@ -34,11 +34,11 @@ The vertical coarse scrolling isn't even done by updating the LMS addresses.   I
 
 
 
-================================================================================
+=============================================================
 
 Breakout Border Bumpers
 
-================================================================================
+=============================================================
 
 [![ThumperScreenGrab](https://github.com/kenjennings/GECE-parts/blob/master/parts-thumper-pic.png)](#features)
  
@@ -55,11 +55,11 @@ This looked weird when the code ran the animations at 60 fps.  I cut down the sp
 
 
 
-================================================================================
+=============================================================
 
 Breakout Bricks Playfield 
 
-================================================================================
+=============================================================
 
 [![BricksScreenGrab](https://github.com/kenjennings/GECE-parts/blob/master/parts-bricks-pic.png)](#features)
  
