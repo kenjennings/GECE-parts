@@ -3043,6 +3043,11 @@ PRG_START
 
 	jsr Set_VBI
 	
+; 1) insure all screen memory is 0.
+
+; 2) a) immediate/force all disply LMS to off screen (left/screen 1 postition) 
+; 2) b) Wait for movement to occur:
+	
 	jsr WaitFrame 
 	
 ;===============================================================================
@@ -3055,8 +3060,121 @@ PRG_START
 ;===============================================================================
 	
 FOREVER
+; ***************
+; BREAKOUT     
+; ***************
+	
+; 3) a) Load BREAKOUT graphics to off screen (which is currently center/screen 2) and
+; 3) b) load breakout color table
+
+; 4) Set new random Start positions for left/right scroll, Signal start scroll
+
+; 5) a) Signal start Scroll to the VBI
+; 5) b) Wait for frame.
+
+	jsr WaitFrame 
+	
+; 5) c) wait until scroll movement completely
+
+; 6) Pause 2 seconds/120 frames
+
+; ***************
+; CLEAR BREAKOUT     
+; ***************
+
+; 7) Set random destination to clear screen (left/screen 1 and right/screen 3)
+
+; 8) a) Signal start Scroll to the VBI
+; 8) b) Wait for frame.
+
+	jsr WaitFrame 
+	
+; 8) c) wait until scroll movement completely
+
+; 9) Clear center screen
+
+; ***************
+; PLAY BRICKS 1    
+; ***************
+
+; 10) a) Load BRICKS graphics to off screen (which is currently center/screen 2) and
+; 10) b) load BRICKS color table
+
+; 11) Set new random Start positions for left/right scroll, Signal start scroll
+
+; 12) a) Signal start Scroll to the VBI
+; 12) b) Wait for frame.
+
+	jsr WaitFrame 
+	
+; 12) c) wait until scroll movement completely
+
+; 13) Pause 2 seconds/120 frames
+
+; ***************
+; CLEAR BRICKS 1    
+; ***************
+
+; 14) a) Loop X and Y. 
+; 14) b) Erase a brick.
+; 14) c) Pause 8 frames.
+; 14) d) continue loop.
+
+; 15) a) Set random destination to clear screens (left/screen 1 and right/screen 3)
+; 15) b) immediate/force all disply LMS to off screen (left/screen 1 postition) 
+; 15) c) wait for movement to occur:
+
+	jsr WaitFrame 
+
+; ***************
+; PLAY BRICKS 2    
+; ***************
+
+; 16) a) Load BRICKS graphics to off screen (which is currently center/screen 2) and
+; 16) b) load BRICKS color table
+
+; 17) Set new random Start positions for left/right scroll, Signal start scroll
+
+; 18) a) Signal start Scroll to the VBI
+; 18) b) Wait for frame.
+
+	jsr WaitFrame 
+	
+; 18) c) wait until scroll movement completely
+
+; 19) Pause 2 seconds/120 frames
+
+; ***************
+; CLEAR BRICKS 2    
+; ***************
+
+; 14) a) Loop X and Y. 
+; 14) b) Erase a brick.
+; 14) c) Pause 8 frames.
+; 14) d) continue loop.
+
+; 15) a) Set random destination to clear screens (left/screen 1 and right/screen 3)
+; 15) b) immediate/force all disply LMS to off screen (left/screen 1 postition) 
+; 15) c) wait for movement to occur:
+
+	jsr WaitFrame 
+
+	
+
+
+
+; 8) a) Signal start Scroll to the VBI
+; 8) b) Wait for frame.
+	jsr WaitFrame 
+; 8) c) wait until scroll movement completely
+
+; 9) Clear center screen
+
+
 	
 	jsr WaitFrame ; Wait for VBI to run.
+	
+	
 ;	jsr WaitFrame ; Wait for VBI to run.
 ;	jsr WaitFrame ; Wait for VBI to run.
 ;	jsr WaitFrame ; Wait for VBI to run.
