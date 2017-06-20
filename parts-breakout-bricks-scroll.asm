@@ -674,22 +674,23 @@ CHARACTER_SET_01
 ; LMS low byte for every line
 ;
 
+
 BRICK_LINE0 
-	.dc $0040 $00 ; 64 bytes for left/right scroll. Relative +$0000
+	.ds $0040 ; 64 bytes for left/right scroll. Relative +$0000
 BRICK_LINE1
-	.dc $0040 $00 ; 64 bytes for left/right scroll. Relative +$0040
+	.ds $0040 ; 64 bytes for left/right scroll. Relative +$0040
 BRICK_LINE2
-	.dc $0040 $00 ; 64 bytes for left/right scroll. Relative +$0080
+	.ds $0040 ; 64 bytes for left/right scroll. Relative +$0080
 BRICK_LINE3
-	.dc $0040 $00 ; 64 bytes for left/right scroll. Relative +$00C0
+	.ds $0040 ; 64 bytes for left/right scroll. Relative +$00C0
 BRICK_LINE4
-	.dc $0040 $00 ; 64 bytes for left/right scroll. Relative +$0100
+	.ds $0040 ; 64 bytes for left/right scroll. Relative +$0100
 BRICK_LINE5
-	.dc $0040 $00 ; 64 bytes for left/right scroll. Relative +$0140
+	.ds $0040 ; 64 bytes for left/right scroll. Relative +$0140
 BRICK_LINE6
-	.dc $0040 $00 ; 64 bytes for left/right scroll. Relative +$0180
+	.ds $0040 ; 64 bytes for left/right scroll. Relative +$0180
 BRICK_LINE7
-	.dc $0040 $00 ; 64 bytes for left/right scroll. Relative +$01C0
+	.ds $0040 ; 64 bytes for left/right scroll. Relative +$01C0
 
 
 
@@ -698,7 +699,7 @@ BRICK_LINE7
 ; Master copies (source copied to working screen)
 ;
 EMPTY_LINE ; 64 bytes of 0.
-	.dc $0040 $00 ; 64 bytes of 0.                  Relative +$0300
+	.ds $0040 ; 64 bytes of 0.                  Relative +$0300
 
 
 
@@ -1095,7 +1096,6 @@ DISPLAY_LIST_THUMPER_RTS ; destination for animation routine return.
 	; Delineate end of DLI VSCROLL area
 	.byte DL_BLANK_5  ; 5 + 1 mode C below + 1 blank below = 7 commented above
 	.byte DL_MAP_C|DL_LMS
-;	.word BRICK_LINE0+[entry*$40] ; not immediately offset into middle of graphics line
 	.word BRICK_LINE_MASTER 	
 ; DIAGNOSTIC ** END
 
@@ -1191,17 +1191,19 @@ BRICK_BASE
 	.byte DL_MAP_C|DL_LMS
 	.word BRICK_LINE_MASTER 	
 
+
 	
 ; some blank lines, two lines diagnostics, a few more blank lines.
 
 
-	.byte $70,$70,$F0,$70 ; Last DLI for DIAG
-	.byte $42
+	.byte DL_BLANK_8,DL_BLANK_8,DL_BLANK_7|DL_DLI; This is last DLI for DIAG
+	.byte DL_BLANK_8 
+	.byte DL_TEXT_2|DL_LMS
 	.word DIAG0
-	.byte $30
-	.byte $42
+	.byte DL_BLANK_4
+	.byte DL_TEXT_2|DL_LMS
 	.word DIAG1
-	.byte $70,$70,$70,$70
+	.byte DL_BLANK_8,DL_BLANK_8,DL_BLANK_8,DL_BLANK_8
 
 	
 	
@@ -2691,13 +2693,53 @@ DiagByte
 
 .local
 ;===============================================================================
+; CLEAR ALL SCREEN MEM
+;===============================================================================
+; Zero all 64-bytes of all the display lines.
+; used once to init screen memory.
+; 
+; This is done to allow the code to declare screen memory
+; using .ds instead of assembling storage per .dc directive.
+;
+; This would only be called once at initialization.
+;===============================================================================
+; 
+;===============================================================================
+; Write 64 zero bytes to each Row 
+;===============================================================================
+
+MainClearAllScreenRAM
+
+	ldx #$3F
+	lda #0
+	
+?LoopZeroBitmapToScreen	
+	sta BRICK_LINE0,x
+	sta BRICK_LINE1,x
+	sta BRICK_LINE2,x
+	sta BRICK_LINE3,x
+	sta BRICK_LINE4,x
+	sta BRICK_LINE5,x
+	sta BRICK_LINE6,x
+	sta BRICK_LINE7,x
+	
+	sta EMPTY_LINE,x
+	
+	dex
+	bpl ?LoopZeroBitmapToScreen
+	
+	rts
+
+
+.local
+;===============================================================================
 ; MAIN CLEAR CENTER SCREEN
 ;===============================================================================
 ; Zero the center screen bitmap on all the screen rows.
 ;===============================================================================
 ; 
 ;===============================================================================
-; Wrote 20 zero bytes to each Row at position +20 
+; Write 20 zero bytes to each Row at position +20 
 ;===============================================================================
 
 MainClearCenterScreen
@@ -2852,15 +2894,15 @@ MainCopyBricks
 ;===============================================================================
 ; Setup Scroll positions to bring in a new screen of graphics (in the 
 ; center position).
-; The current position need not be left/right.  This will be forced.
+; The current position need not be left/right screen.  This will be forced.
 ; Determine Horizontal Scroll Directions for each line.
 ; Set Current HSCROL and Display List LMS to the left or right screen (per row). 
 ; Set Target HSCROL and Display List LMS to the center screen (per row).
 ;===============================================================================
 ; Uses MainGetRandomScroll to establish the following:
-; PARAM_89 == Direction
-; PARAM_88 == Speed
-; PARAM_87 == Delay
+; PARAM_89 == Direction index
+; PARAM_88 == Speed index
+; PARAM_87 == Delay index
 ; also uses:
 ; PARAM_86 == temporary save the X register/current row
 ;===============================================================================
@@ -2893,7 +2935,6 @@ MainCopyBricks
 ;   - set all scroll parameters,
 ;   - set Target to the center screen,
 ;   - (write the bitmap into the center position ASAP. Not done here) 
-
 ;===============================================================================
 
 MainSetCenterTargetScroll
@@ -2944,9 +2985,9 @@ MainSetCenterTargetScroll
 	
 	; Not the end.  Increment everything else.
     
-	inc PARAM_89 ; Direction
-	inc PARAM_88 ; Speed
-	inc PARAM_87 ; Delay
+	inc PARAM_89 ; Direction index
+	inc PARAM_88 ; Speed index
+	inc PARAM_87 ; Delay index
     
 	clc
 	bcc ?InitRowPositions         ; Loop again.
@@ -2960,16 +3001,100 @@ EndSetCenterTargetSCroll
 
 .local
 ;===============================================================================
+; MAIN SET CLEAR TARGET SCROLL
+;===============================================================================
+; Setup Scroll positions to bring in an empty screen display.
+; The current position should be the center screen.
+; Determine Horizontal Scroll Directions for each line. 
+; Set Target HSCROL and Display List LMS to the left or right screen (per row).
+;===============================================================================
+; Uses MainGetRandomScroll to establish the following:
+; PARAM_89 == Direction index
+; PARAM_88 == Speed index
+; PARAM_87 == Delay index
+;===============================================================================
+; * The difference between Bricks entering the screen and the 
+;   Logo or GameOver graphics is that during normal gameplay 
+;   the Bricks do not have an exit transition to move the 
+;   graphics off to show blank screen data. However, in both 
+;   cases the graphics moving on screen are in the center 
+;   position.  
+; * The expected starting point for screen position is 
+;   always the center screen at LMS offset +20 on every line.
+; * Placing a new screen of bricks requires updating screen data
+;   and setting the lines to left or right line positions while
+;   the bricks are NOT being displayed.  
+;   (This should not be too hard since the bulk of the brick section 
+;    is monopolized by a long running DLI, so MAIN line code won't get 
+;    much working time until after the DLI.)
+; * To clear bricks/title/game over text
+;   - set all scroll parameters,
+;   - set Target to the left or right per random choices, 
+;===============================================================================
+
+MainSetClearTargetScroll
+
+	jsr MainGetRandomScroll          ; Setup PARAMS for Direction, Speed, Delay.
+	
+	saveRegs ; Save regs so this is non-disruptive to caller
+	
+?BeginInitScrollLoop
+	ldx #0  ; Brick Row. 0 to 7. (otherwise the TABLES need to be flipped in reverse)
+
+?InitRowPositions	
+	ldy PARAM_89 ; Direction
+	lda TABLE_CANNED_BRICK_DIRECTIONS,y ; Get direction per canned list for the row.
+	sty BRICK_SCREEN_DIRECTION,x        ; Save direction -1, +1 for row.
+	
+	iny                              ; Now direction is adjusted to 0, 2
+
+	lda BRICK_SCREEN_HSCROL,y        ; Get starting hscroll position per scroll direction.
+	sta BRICK_SCREEN_TARGET_HSCROL,x ; Set for the destination row.
+	
+	lda BRICK_SCREEN_LMS,y           ; Get Starting LMS position per scroll direction.
+	sta BRICK_SCREEN_TARGET_LMS,x    ; Set low byte of LMS to move row
+	
+	ldy PARAM_88                     ; Y = Speed index
+	lda TABLE_CANNED_BRICK_SPEED,y   ; Get speed per canned list for the row.
+	sta BRICK_SCREEN_HSCROL_MOVE,x   ; Set for the current row.
+	
+	ldy PARAM_87                     ; Y = Delay index
+	lda TABLE_CANNED_BRICKS_DELAY,y  ; Get delay per canned list for the row.
+	sta BRICK_SCREEN_MOVE_DELAY,x    ; Set for the current row.
+	
+	inx                              ; Increment to the next row.
+	cpx #8                           ; Reached the end?
+	beq ?EndSetClearTargetScroll     ; Yes. Exit.
+	
+	; Not the end.  Increment everything else.
+    
+	inc PARAM_89                     ; Direction index
+	inc PARAM_88                     ; Speed index
+	inc PARAM_87                     ; Delay index
+    
+	clc
+	bcc ?InitRowPositions            ; Loop again.
+
+?EndSetClearTargetScroll
+
+	inc BRICK_SCREEN_START_SCROLL    ; Signal VBI to start screen movement.
+	
+	safeRTS ; restore regs for safe exit
+
+
+.local
+;===============================================================================
 ; MAIN GET RANDOM SCROLL
 ;===============================================================================
 ; Determine random scroll parameters.  Each value is a random 
 ; selection resulting in the base offest into a Canned table 
-; of values providing data for each row.  
+; of values providing data for each row.  The index to the
+; randomly chosen row is saved by this routine.
 ;===============================================================================
 ; MODIFIES/OUTPUT:
-; PARAM_89 == Direction
-; PARAM_88 == Speed
-; PARAM_87 == Delay 
+; PARAM_89 == Direction index
+; PARAM_88 == Speed index
+; PARAM_87 == Delay index
 ;===============================================================================
 ;
 ;===============================================================================
@@ -2978,7 +3103,7 @@ MainGetRandomScroll
 
 	saveRegs ; Save regs so this is non-disruptive to caller
 
-	lda RANDOM                   ; choose random Canned direction table entries.
+	lda RANDOM                   ; choose random canned direction table index.
 	and #$38                     ; Resulting value 00, 08, 10, 18, 20, 28, 30, 38
 	sta PARAM_89 ; Direction     ; save to use later.
 	
@@ -3045,10 +3170,15 @@ PRG_START
 	
 ; 1) insure all screen memory is 0.
 
-; 2) a) immediate/force all disply LMS to off screen (left/screen 1 postition) 
+	jsr MainClearAllScreenRAM
+
+; 2 is NOT NEEDED.  Default initialized position is left/screen 1.	
+; 2) a) immediate/force all display LMS to off screen (left/screen 1 postition).
+
 ; 2) b) Wait for movement to occur:
 	
-	jsr WaitFrame 
+;	jsr WaitFrame 
+
 	
 ;===============================================================================
 ; ****   ******   **    *****
@@ -3061,25 +3191,45 @@ PRG_START
 	
 FOREVER
 ; ***************
-; BREAKOUT     
+; TITLE 
 ; ***************
 	
-; 3) a) Load BREAKOUT graphics to off screen (which is currently center/screen 2) and
+
+; 3) a) Load BREAKOUT graphics to off screen (which is currently center/screen 2) 
+
+; In final version code may need to verify current scanline 
+; VCOUNT value is below the playfield before doing the copy.
+
+	jsr MainCopyLogo
+	
 ; 3) b) load breakout color table
+
+;	jsr TBD
 
 ; 4) Set new random Start positions for left/right scroll, Signal start scroll
 
 ; 5) a) Signal start Scroll to the VBI
-; 5) b) Wait for frame.
 
-	jsr WaitFrame 
+	jsr MainSetCenterTargetScroll ; This does 4 and 5a.
+
+; 5) b) Wait for next frame.
+
+	jsr WaitFrame ; Wait for VBI to pick up the scroll directions.
 	
-; 5) c) wait until scroll movement completely
+; 5) c) wait until scroll movement completes
 
+?WaitForScroll_1
+	lda BRICK_SCREEN_IN_MOTION ; Wait here for VBI to finish movement.
+	bne ?WaitForScroll_1
+	
 ; 6) Pause 2 seconds/120 frames
 
+	ldx #120
+	jsr WaitFrames
+
+
 ; ***************
-; CLEAR BREAKOUT     
+; CLEAR TITLE     
 ; ***************
 
 ; 7) Set random destination to clear screen (left/screen 1 and right/screen 3)
@@ -3089,7 +3239,7 @@ FOREVER
 
 	jsr WaitFrame 
 	
-; 8) c) wait until scroll movement completely
+; 8) c) wait until scroll movement completes
 
 ; 9) Clear center screen
 
@@ -3103,11 +3253,11 @@ FOREVER
 ; 11) Set new random Start positions for left/right scroll, Signal start scroll
 
 ; 12) a) Signal start Scroll to the VBI
-; 12) b) Wait for frame.
+; 12) b) Wait for next frame.
 
 	jsr WaitFrame 
 	
-; 12) c) wait until scroll movement completely
+; 12) c) wait until scroll movement completes
 
 ; 13) Pause 2 seconds/120 frames
 
@@ -3136,11 +3286,11 @@ FOREVER
 ; 17) Set new random Start positions for left/right scroll, Signal start scroll
 
 ; 18) a) Signal start Scroll to the VBI
-; 18) b) Wait for frame.
+; 18) b) Wait for next frame.
 
 	jsr WaitFrame 
 	
-; 18) c) wait until scroll movement completely
+; 18) c) wait until scroll movement completes
 
 ; 19) Pause 2 seconds/120 frames
 
@@ -3159,22 +3309,40 @@ FOREVER
 
 	jsr WaitFrame 
 
+; ***************
+; GAME OVER 
+; ***************
 	
+; 16) a) Load GAME OVER graphics to off screen (which is currently center/screen 2) and
+; 16) b) load breakout color table
 
+; 17) Set new random Start positions for left/right scroll, Signal start scroll
 
+; 18) a) Signal start Scroll to the VBI
+; 18) b) Wait for next frame.
 
-; 8) a) Signal start Scroll to the VBI
-; 8) b) Wait for frame.
 	jsr WaitFrame 
-; 8) c) wait until scroll movement completely
-
-; 9) Clear center screen
-
-
 	
-	jsr WaitFrame ; Wait for VBI to run.
+; 18) c) wait until scroll movement completes
+
+; 19) Pause 2 seconds/120 frames
+
+; ***************
+; CLEAR GAME OVER     
+; ***************
+
+; 20) Set random destination to clear screen (left/screen 1 and right/screen 3)
+
+; 21) a) Signal start Scroll to the VBI
+; 22) b) Wait for frame.
+
+	jsr WaitFrame 
 	
-	
+; 22) c) wait until scroll movement completes
+
+; 23) Clear center screen
+
+
 ;	jsr WaitFrame ; Wait for VBI to run.
 ;	jsr WaitFrame ; Wait for VBI to run.
 ;	jsr WaitFrame ; Wait for VBI to run.
@@ -3232,11 +3400,11 @@ FOREVER
 	
 ;	mDebugByte THUMPER_COLOR_RIGHT,       34 ; CR
 	
-;	mDebugByte TITLE_COLOR_COUNTER,  37 ; CC
+;	mDebugByte TITLE_COLOR_COUNTER,       37 ; CC
 
-;	mDebugByte TITLE_DLI_PMCOLOR,    34 ; DP
+;	mDebugByte TITLE_DLI_PMCOLOR,         34 ; DP
 ;===============================================================================	
-;	mDebugByte TITLE_SLOW_ME_CLOCK,  37 ; SM
+;	mDebugByte TITLE_SLOW_ME_CLOCK,       37 ; SM
 ;===============================================================================
 
 	jmp FOREVER ; And again.  (and again) 
@@ -3375,17 +3543,18 @@ MainSetTitle
 	rts
 
 
-;-------------------------------------------------------------------------------------------
+;===============================================================================
 ; VBL WAIT
-;-------------------------------------------------------------------------------------------
+;===============================================================================
 ; The Atari OS  maintains a clock that ticks every vertical 
 ; blank.  So, when the clock ticks the frame has started.
 
 WaitFrame
 
-	lda RTCLOK60			;; get frame/jiffy counter
+	lda RTCLOK60			; get frame/jiffy counter
+	
 WaitTick60
-	cmp RTCLOK60			;; Loop until the clock changes
+	cmp RTCLOK60			; Loop until the clock changes
 	beq WaitTick60
 
 	;; if the real-time clock has ticked off approx 29 seconds,  
@@ -3399,15 +3568,51 @@ WaitTick60
 skip_29secTick
 
 ;	lda mr_roboto ;; in auto play mode?
-;	bne exit_waitFrame ;; Yes. then exit to skip playing sound.
+;	bne ?Exit_waitFrame ;; Yes. then exit to skip playing sound.
 
 	lda #$00  ;; When Mr Roboto is NOT running turn off the "attract"
 	sta ATRACT ;; mode color cycling for CRT anti-burn-in
     
 ;	jsr AtariSoundService ;; Play sound in progress if any.
 
-exit_waitFrame
+?Exit_waitFrame
 	rts
+
+
+.local
+;===============================================================================
+; ****   ******   **    *****
+; ** **    **    ****  **  
+; **  **   **   **  ** **
+; **  **   **   **  ** ** ***
+; ** **    **   ****** **  **
+; ****   ****** **  **  *****
+;===============================================================================
+
+;===============================================================================
+; VBL WAIT FRAMES
+;===============================================================================
+; For diagnostics we need a longer delat for timing purposes.
+; This may not have a purpose in the final game, since everything
+; should be expected to cycle every frame and maintain states
+; if it is delayed ot not.
+;===============================================================================
+; INPUT
+; X == Number of frames to wait.  
+;      Should be 1 to 255. 
+;      0 would cause wait for 256 frames.
+;===============================================================================
+
+WaitFrames ; Frames, plural.
+
+	jsr WaitFrame  ; Do-Nothing loop to wait for frame counter change
+	
+	dex            ; frame counter - 1
+	
+	bne WaitFrames ; >0 is not done.
+
+	rts
+
 
 
 ;===============================================================================
