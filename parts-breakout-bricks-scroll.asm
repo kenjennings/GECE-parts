@@ -279,8 +279,8 @@ PARAM_86 = $cd ;
 PARAM_87 = $ce ; 
 PARAM_88 = $cf ; 
 PARAM_89 = $d0 ; 
-PARAM_90 = $d1 ; 
-PARAM_91 = $d2 ;
+PARAM_90 = $d1 ; DIAG_BRICK_Y - remember Y for looping brick destruction 
+PARAM_91 = $d2 ; DIAG_BRICK_X - remember X for looping brick destruction
 PARAM_92 = $d3 ; DIAG_SLOW_ME_CLOCK
 PARAM_93 = $d5 ; DIAG_TEMP1
 
@@ -1458,13 +1458,38 @@ BRICK_CURRENT_HSCROL
 ; the original game and elsewhere on the screen.
 ;
 BRICK_CURRENT_COLOR ; Base color for brick gradients
-	.byte COLOR_PINK+2,        COLOR_PURPLE+2,     
-	.byte COLOR_RED_ORANGE+2,  COLOR_ORANGE2+2
-	.byte COLOR_GREEN+2,       COLOR_BLUE_GREEN+2, 
-	.byte COLOR_LITE_ORANGE+2, COLOR_ORANGE_GREEN+2
+	.ds 8 ; 8 bytes, one for each row.       
 
-	
-	
+TABLE_COLOR_TITLE ; Colors for title screen.  R a i n b o w
+	.byte COLOR_ORANGE1+2
+	.byte COLOR_RED_ORANGE+2
+	.byte COLOR_PURPLE+2
+	.byte COLOR_BLUE1+2
+	.byte COLOR_LITE_BLUE+2
+	.byte COLOR_BLUE_GREEN+2
+	.byte COLOR_YELLOW_GREEN+2
+	.byte COLOR_LITE_ORANGE+2
+
+TABLE_COLOR_BRICKS ; Colors for normal game bricks.
+	.byte COLOR_PINK+2        ; "Red"
+	.byte COLOR_PINK+2        ; "Red"
+	.byte COLOR_RED_ORANGE+2  ; "Orange"
+	.byte COLOR_RED_ORANGE+2  ; "Orange"
+	.byte COLOR_GREEN+2       ; "Green"
+	.byte COLOR_GREEN+2       ; "Green"
+	.byte COLOR_LITE_ORANGE+2 ; "Yellow"
+	.byte COLOR_LITE_ORANGE+2 ; "Yellow"
+
+TABLE_COLOR_GAME_OVER ; Colors for Game Over Text.
+	.byte COLOR_ORANGE1+2  ; 
+	.byte COLOR_ORANGE1+2  ; 
+	.byte COLOR_RED_ORANGE+2  ; "Orange"
+	.byte COLOR_RED_ORANGE+2  ; "Orange"
+	.byte COLOR_ORANGE2+2  ; 
+	.byte COLOR_ORANGE2+2  ; 
+	.byte COLOR_PINK+2        ; "Red"
+	.byte COLOR_PINK+2        ; "Red"
+
 	
 ;
 ; MAIN code sets the following sets of configuration
@@ -1594,6 +1619,11 @@ BRICK_BASE_LINE_TABLE_HI
 ; Starting byte offset for visible screen memory, then the AND mask 
 ; for 3 bytes because some bricks cross three bytes.
 ;
+; This could have been done with four separate tables
+; providing base offset, byte 0, byte 1, and byte 2.
+; That would save multiplying brick number by 4.
+; oh, well...
+;
 BRICK_MASK_TABLE
 	.byte $00, ~00000000, ~00000011, ~11111111
 	.byte $01, ~11111000, ~00000000, ~01111111
@@ -1693,6 +1723,7 @@ BRICK_YPOS_BOTTOM_TABLE
 
 
 ; Convert X coordinate to brick, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14.
+; (The code receiving these values will likely decrement it into 0 - 13.)
 ; The Table does NOT contain entries for the entire playfield width.  It contains
 ; only the entries of the valid playfield from left bumper to right bumper.
 ; Three color clocks on the left and four on the right are not included in the 
@@ -1722,7 +1753,9 @@ BALL_XPOS_TO_BRICK_TABLE
 	.byte 14,14,14,14,14,14,14,14,14,14
 
 ; Brick rows are 5 lines + 2 blanks between.  Another bad computation like
-; the X Position deal.  When the Ball Y position to test is between the 
+; the X Position deal.  
+; (The code receiving these values will likely decrement it into 0 - 7.)
+; When the Ball Y position to test is between the 
 ; first scan line and last scan line of the brick rows this lookup table
 ; identifies the row 1, 2, 3, 4, 5, 6, 7, 8.
 
@@ -2693,6 +2726,54 @@ DiagByte
 
 .local
 ;===============================================================================
+; DESTROY BRICKS - brick removal.
+;===============================================================================
+; Given an X Brick and Y Row number, locate the brick and mask out the 
+; pixels using the BRICK_MASK_TABLE.
+; The table provides AND mask for three consecutive bytes, though 
+; the third is not always needed it is present to simplify the code.
+;===============================================================================
+; INPUT:
+; X == Brick number, 0 to 13
+; Y == Row number, 0 to 7.
+; Also uses:
+; ZBRICK_BASE (ZEROPAGE_POINTER_8)  Base address of bricks on row.
+;===============================================================================
+
+DestroyBrick
+
+	saveRegs ; Save regs so this is non-disruptive to caller
+
+	; Setup ZBRICK_BASE from BRICK_BASE_LINE_TABLEs
+	lda BRICK_BASE_LINE_TABLE_LO,y
+	sta ZBRICK_BASE 
+	lda BRICK_BASE_LINE_TABLE_HI,y
+	sta ZBRICK_BASE+1
+	
+	; Multiply Brick number by 4 to get correct offset into the array
+	txa
+	asl a ; * 2
+	asl a ; * 4
+	tax
+	
+	lda BRICK_MASK_TABLE,x ; Get entry 0, the byte offset for this brick...
+	tay                    ; Byte offset in Y for indirection below... 
+	
+	inx ; increment for entry 1, the first mask byte
+
+?Loop_NextByteMask
+	lda BRICK_MASK_TABLE,x ; Load mask
+	and (ZBRICK_BASE),y    ; AND with pixel memory
+	sta (ZBRICK_BASE),y    ; store updated pixels.
+
+	inx                    ; increment for next mask entry
+	cpx #4                 ; Reached the end?
+	bne ?Loop_NextByteMask ; No.  Do next byte of pixels.
+	
+	safeRTS ; restore regs for safe exit
+	
+.local
+;===============================================================================
 ; CLEAR ALL SCREEN MEM
 ;===============================================================================
 ; Zero all 64-bytes of all the display lines.
@@ -2748,14 +2829,14 @@ MainClearCenterScreen
 	lda #0
 	
 ?LoopZeroBitmapToScreen	
-	sta BRICK_LINE0+20,x
-	sta BRICK_LINE1+20,x
-	sta BRICK_LINE2+20,x
-	sta BRICK_LINE3+20,x
-	sta BRICK_LINE4+20,x
-	sta BRICK_LINE5+20,x
-	sta BRICK_LINE6+20,x
-	sta BRICK_LINE7+20,x
+	sta BRICK_LINE0+21,x
+	sta BRICK_LINE1+21,x
+	sta BRICK_LINE2+21,x
+	sta BRICK_LINE3+21,x
+	sta BRICK_LINE4+21,x
+	sta BRICK_LINE5+21,x
+	sta BRICK_LINE6+21,x
+	sta BRICK_LINE7+21,x
 	
 	dex
 	bpl ?LoopZeroBitmapToScreen
@@ -2776,32 +2857,45 @@ MainClearCenterScreen
 
 MainCopyGameOver
 
+; Copy associated color table.
+
+	ldx #7
+	
+?LoopCopyColorTable
+	lda TABLE_COLOR_GAME_OVER,x
+	sta BRICK_CURRENT_COLOR,x
+	
+	dex
+	bpl ?LoopCopyColorTable
+	
+; Copy screen data
+
 	ldx #19
 	
 ?LoopCopyBitmapToScreen	
 	lda GAMEOVER_LINE0,X
-	sta BRICK_LINE0+20,x
+	sta BRICK_LINE0+21,x
 
 	lda GAMEOVER_LINE1,X
-	sta BRICK_LINE1+20,x
+	sta BRICK_LINE1+21,x
 
 	lda GAMEOVER_LINE2,X
-	sta BRICK_LINE2+20,x
+	sta BRICK_LINE2+21,x
 
 	lda GAMEOVER_LINE3,X
-	sta BRICK_LINE3+20,x
+	sta BRICK_LINE3+21,x
 
 	lda GAMEOVER_LINE4,X
-	sta BRICK_LINE4+20,x
+	sta BRICK_LINE4+21,x
 
 	lda GAMEOVER_LINE5,X
-	sta BRICK_LINE5+20,x
+	sta BRICK_LINE5+21,x
 
 	lda GAMEOVER_LINE6,X
-	sta BRICK_LINE6+20,x
+	sta BRICK_LINE6+21,x
 
 	lda GAMEOVER_LINE7,X
-	sta BRICK_LINE7+20,x
+	sta BRICK_LINE7+21,x
 	
 	dex
 	bpl ?LoopCopyBitmapToScreen
@@ -2822,32 +2916,45 @@ MainCopyGameOver
 
 MainCopyLogo
 
+; Copy associated color table.
+
+	ldx #7
+	
+?LoopCopyColorTable
+	lda TABLE_COLOR_TITLE,x
+	sta BRICK_CURRENT_COLOR,x
+	
+	dex
+	bpl ?LoopCopyColorTable
+	
+; Copy screen data
+
 	ldx #19
 	
 ?LoopCopyBitmapToScreen	
 	lda LOGO_LINE0,X
-	sta BRICK_LINE0+20,x
+	sta BRICK_LINE0+21,x
 
 	lda LOGO_LINE1,X
-	sta BRICK_LINE1+20,x
+	sta BRICK_LINE1+21,x
 
 	lda LOGO_LINE2,X
-	sta BRICK_LINE2+20,x
+	sta BRICK_LINE2+21,x
 
 	lda LOGO_LINE3,X
-	sta BRICK_LINE3+20,x
+	sta BRICK_LINE3+21,x
 
 	lda LOGO_LINE4,X
-	sta BRICK_LINE4+20,x
+	sta BRICK_LINE4+21,x
 
 	lda LOGO_LINE5,X
-	sta BRICK_LINE5+20,x
+	sta BRICK_LINE5+21,x
 
 	lda LOGO_LINE6,X
-	sta BRICK_LINE6+20,x
+	sta BRICK_LINE6+21,x
 
 	lda LOGO_LINE7,X
-	sta BRICK_LINE7+20,x
+	sta BRICK_LINE7+21,x
 	
 	dex
 	bpl ?LoopCopyBitmapToScreen
@@ -2868,19 +2975,32 @@ MainCopyLogo
 
 MainCopyBricks
 
+; Copy associated color table.
+
+	ldx #7
+	
+?LoopCopyColorTable
+	lda TABLE_COLOR_BRICKS,x
+	sta BRICK_CURRENT_COLOR,x
+	
+	dex
+	bpl ?LoopCopyColorTable
+	
+; Copy screen data
+
 	ldx #19
 	
 ?LoopCopyBitmapToScreen	
 	lda BRICK_LINE_MASTER,X
 	
-	sta BRICK_LINE0+20,x
-	sta BRICK_LINE1+20,x
-	sta BRICK_LINE2+20,x
-	sta BRICK_LINE3+20,x
-	sta BRICK_LINE4+20,x
-	sta BRICK_LINE5+20,x
-	sta BRICK_LINE6+20,x
-	sta BRICK_LINE7+20,x
+	sta BRICK_LINE0+21,x
+	sta BRICK_LINE1+21,x
+	sta BRICK_LINE2+21,x
+	sta BRICK_LINE3+21,x
+	sta BRICK_LINE4+21,x
+	sta BRICK_LINE5+21,x
+	sta BRICK_LINE6+21,x
+	sta BRICK_LINE7+21,x
 	
 	dex
 	bpl ?LoopCopyBitmapToScreen
@@ -2957,7 +3077,7 @@ MainSetCenterTargetScroll
 	
 	ldy PARAM_89 ; Direction
 	lda TABLE_CANNED_BRICK_DIRECTIONS,y ; Get direction per canned list for the row.
-	sty BRICK_SCREEN_DIRECTION,x ; Save direction -1, +1 for row.
+	sta BRICK_SCREEN_DIRECTION,x ; Save direction -1, +1 for row.
 	
 	iny                          ; Now direction is adjusted to 0, 2
 
@@ -2981,7 +3101,7 @@ MainSetCenterTargetScroll
 	
 	inx                             ; Increment to the next row.
 	cpx #8                          ; Reached the end?
-	beq EndInitBrickPositions       ; Yes. Exit.
+	beq End_SetCenterTargetSCroll   ; Yes. Exit.
 	
 	; Not the end.  Increment everything else.
     
@@ -2992,7 +3112,7 @@ MainSetCenterTargetScroll
 	clc
 	bcc ?InitRowPositions         ; Loop again.
 
-EndSetCenterTargetSCroll
+End_SetCenterTargetSCroll
 
 	inc BRICK_SCREEN_START_SCROLL  ; Signal VBI to start screen movement.
 	
@@ -3044,7 +3164,7 @@ MainSetClearTargetScroll
 ?InitRowPositions	
 	ldy PARAM_89 ; Direction
 	lda TABLE_CANNED_BRICK_DIRECTIONS,y ; Get direction per canned list for the row.
-	sty BRICK_SCREEN_DIRECTION,x        ; Save direction -1, +1 for row.
+	sta BRICK_SCREEN_DIRECTION,x        ; Save direction -1, +1 for row.
 	
 	iny                              ; Now direction is adjusted to 0, 2
 
@@ -3172,9 +3292,9 @@ PRG_START
 
 	jsr MainClearAllScreenRAM
 
-; 2 is NOT NEEDED.  Default initialized position is left/screen 1.	
-; 2) a) immediate/force all display LMS to off screen (left/screen 1 postition).
+; 2 is NOT NEEDED.  Default initialized position is left/screen 1:
 
+; 2) a) immediate/force all display LMS to off screen (left/screen 1 postition).
 ; 2) b) Wait for movement to occur:
 	
 ;	jsr WaitFrame 
@@ -3190,58 +3310,50 @@ PRG_START
 ;===============================================================================
 	
 FOREVER
+
 ; ***************
 ; TITLE 
 ; ***************
 	
-
 ; 3) a) Load BREAKOUT graphics to off screen (which is currently center/screen 2) 
+; 3) b) load breakout color table
 
 ; In final version code may need to verify current scanline 
 ; VCOUNT value is below the playfield before doing the copy.
 
-	jsr MainCopyLogo
+	jsr MainCopyLogo ; This does 3a and 3b.
 	
-; 3) b) load breakout color table
-
-;	jsr TBD
-
 ; 4) Set new random Start positions for left/right scroll, Signal start scroll
-
 ; 5) a) Signal start Scroll to the VBI
 
 	jsr MainSetCenterTargetScroll ; This does 4 and 5a.
 
 ; 5) b) Wait for next frame.
-
-	jsr WaitFrame ; Wait for VBI to pick up the scroll directions.
-	
 ; 5) c) wait until scroll movement completes
 
-?WaitForScroll_1
-	lda BRICK_SCREEN_IN_MOTION ; Wait here for VBI to finish movement.
-	bne ?WaitForScroll_1
+	jsr WaitForScroll ; This does 5b and 5c.
 	
 ; 6) Pause 2 seconds/120 frames
 
 	ldx #120
 	jsr WaitFrames
 
-
 ; ***************
 ; CLEAR TITLE     
 ; ***************
 
 ; 7) Set random destination to clear screen (left/screen 1 and right/screen 3)
-
 ; 8) a) Signal start Scroll to the VBI
-; 8) b) Wait for frame.
 
-	jsr WaitFrame 
-	
+	jsr MainSetClearTargetScroll ; this does 7 and 8a.
+
+; 8) b) Wait for frame.
 ; 8) c) wait until scroll movement completes
 
+	jsr WaitForScroll ; This does 8b and 8c.
+
 ; 9) Clear center screen
+;  Not needed, because it will be filled with bricks in just a moment...
 
 ; ***************
 ; PLAY BRICKS 1    
@@ -3250,16 +3362,22 @@ FOREVER
 ; 10) a) Load BRICKS graphics to off screen (which is currently center/screen 2) and
 ; 10) b) load BRICKS color table
 
-; 11) Set new random Start positions for left/right scroll, Signal start scroll
-
-; 12) a) Signal start Scroll to the VBI
-; 12) b) Wait for next frame.
-
-	jsr WaitFrame 
+	jsr MainCopyBricks ; This does 10a and 10b.
 	
+; 11) Set new random Start positions for left/right scroll, Signal start scroll
+; 12) a) Signal start Scroll to the VBI
+
+	jsr MainSetCenterTargetScroll ; This does 11 and 12a.
+
+; 12) b) Wait for next frame.
 ; 12) c) wait until scroll movement completes
 
+	jsr WaitForScroll ; This does 12b and 12c.
+
 ; 13) Pause 2 seconds/120 frames
+
+	ldx #120
+	jsr WaitFrames
 
 ; ***************
 ; CLEAR BRICKS 1    
@@ -3267,14 +3385,23 @@ FOREVER
 
 ; 14) a) Loop X and Y. 
 ; 14) b) Erase a brick.
-; 14) c) Pause 8 frames.
+; 14) c) Pause to show brick deletion progress.
 ; 14) d) continue loop.
+
+	jsr Diag_DestroyBricks ; 14a through 14d
 
 ; 15) a) Set random destination to clear screens (left/screen 1 and right/screen 3)
 ; 15) b) immediate/force all disply LMS to off screen (left/screen 1 postition) 
+
+	jsr MainSetClearTargetScroll ; this does 15a and flags VBI to start moving.
+
+	; set the VBI Immediate move flag ASAP, before VBI can start moving...
+	lda #1
+	sta BRICK_SCREEN_IMMEDIATE_POSITION
+
 ; 15) c) wait for movement to occur:
 
-	jsr WaitFrame 
+	jsr WaitForScroll ; This does 15c.
 
 ; ***************
 ; PLAY BRICKS 2    
@@ -3283,86 +3410,99 @@ FOREVER
 ; 16) a) Load BRICKS graphics to off screen (which is currently center/screen 2) and
 ; 16) b) load BRICKS color table
 
+	jsr MainCopyBricks ; This does 16a and 16b.
+
 ; 17) Set new random Start positions for left/right scroll, Signal start scroll
-
 ; 18) a) Signal start Scroll to the VBI
-; 18) b) Wait for next frame.
 
-	jsr WaitFrame 
-	
+	jsr MainSetCenterTargetScroll ; This does 17 and 18a.
+
+; 18) b) Wait for next frame.
 ; 18) c) wait until scroll movement completes
+
+	jsr WaitForScroll ; This does 18b and 18c.
 
 ; 19) Pause 2 seconds/120 frames
 
+	ldx #120
+	jsr WaitFrames
+	
 ; ***************
 ; CLEAR BRICKS 2    
 ; ***************
 
-; 14) a) Loop X and Y. 
-; 14) b) Erase a brick.
-; 14) c) Pause 8 frames.
-; 14) d) continue loop.
+; 20) a) Loop X and Y. 
+; 21) b) Erase a brick.
+; 22) c) Pause to show brick deletion progress.
+; 23) d) continue loop.
 
-; 15) a) Set random destination to clear screens (left/screen 1 and right/screen 3)
-; 15) b) immediate/force all disply LMS to off screen (left/screen 1 postition) 
-; 15) c) wait for movement to occur:
+	jsr Diag_DestroyBricks ; 20a through 20d
+	
+; 21) a) Set random destination to clear screens (left/screen 1 and right/screen 3)
+; 21) b) immediate/force all disply LMS to off screen (left/screen 1 postition) 
 
-	jsr WaitFrame 
+	jsr MainSetClearTargetScroll ; this does 21a and flags VBI to start moving.
+
+	; set the VBI Immediate move flag ASAP, before VBI can start moving...
+	lda #1
+	sta BRICK_SCREEN_IMMEDIATE_POSITION
+	
+; 21) c) wait for movement to occur:
+
+	jsr WaitForScroll ; This does 21c.
 
 ; ***************
 ; GAME OVER 
 ; ***************
 	
-; 16) a) Load GAME OVER graphics to off screen (which is currently center/screen 2) and
-; 16) b) load breakout color table
+; 22) a) Load GAME OVER graphics to off screen (which is currently center/screen 2) and
+; 22) b) load breakout color table
 
-; 17) Set new random Start positions for left/right scroll, Signal start scroll
-
-; 18) a) Signal start Scroll to the VBI
-; 18) b) Wait for next frame.
-
-	jsr WaitFrame 
+	jsr MainCopyGameOver ; This does 22a and 22b.
 	
-; 18) c) wait until scroll movement completes
+; 23) Set new random Start positions for left/right scroll, Signal start scroll
+; 24) a) Signal start Scroll to the VBI
 
-; 19) Pause 2 seconds/120 frames
+	jsr MainSetCenterTargetScroll ; This does 23 and 24a.
 
+; 24) b) Wait for next frame.
+; 24) c) wait until scroll movement completes
+
+	jsr WaitForScroll ; This does 24b and 24c.
+
+; 25) Pause 2 seconds/120 frames
+
+	ldx #120
+	jsr WaitFrames
+	
 ; ***************
 ; CLEAR GAME OVER     
 ; ***************
 
-; 20) Set random destination to clear screen (left/screen 1 and right/screen 3)
+; 26) Set random destination to clear screen (left/screen 1 and right/screen 3)
+; 27) a) Signal start Scroll to the VBI
 
-; 21) a) Signal start Scroll to the VBI
-; 22) b) Wait for frame.
+	jsr MainSetClearTargetScroll ; this does 26 and 27a.
 
-	jsr WaitFrame 
+; 27) b) Wait for frame.
+; 28) c) wait until scroll movement completes
+
+	jsr WaitForScroll ; This does 27b and 27c.
+
+; 29) Clear center screen
+
+	jsr MainClearCenterScreen ; and 29.
+
+; 30) Pause 2 seconds/120 frames
+
+	ldx #120
+	jsr WaitFrames
 	
-; 22) c) wait until scroll movement completes
-
-; 23) Clear center screen
-
-
-;	jsr WaitFrame ; Wait for VBI to run.
-;	jsr WaitFrame ; Wait for VBI to run.
-;	jsr WaitFrame ; Wait for VBI to run.
-;	jsr WaitFrame ; Wait for VBI to run.
-;	jsr WaitFrame ; Wait for VBI to run.
-;	jsr WaitFrame ; Wait for VBI to run.
-;	jsr WaitFrame ; Wait for VBI to run.
-;	jsr WaitFrame ; Wait for VBI to run.
-;	jsr WaitFrame ; Wait for VBI to run.
-;	jsr WaitFrame ; Wait for VBI to run.
-;	jsr WaitFrame ; Wait for VBI to run.
-;	jsr WaitFrame ; Wait for VBI to run.
-;	jsr WaitFrame ; Wait for VBI to run.
-;	jsr WaitFrame ; Wait for VBI to run.
 ;	jsr WaitFrame ; Wait for VBI to run.
 
 
 
 
-	
 ;===============================================================================
 ; ****   ******   **    *****
 ; ** **    **    ****  **  
@@ -3495,9 +3635,9 @@ Setup
 	sta PMBASE
 	;
 	; Set Missiles = 5th Player (COLPF3)
-	; Set Priority with Players/Missiles on top
+	; Set Priority with Players/Missiles on bottom
 	;
-	lda #[FIFTH_PLAYER|1]  
+	lda #[FIFTH_PLAYER|~00000100]  
 	sta GPRIOR
 
 	lda #[ENABLE_PLAYERS|ENABLE_MISSILES]
@@ -3544,7 +3684,7 @@ MainSetTitle
 
 
 ;===============================================================================
-; VBL WAIT
+; WAIT FRAME - wait for vertical blank
 ;===============================================================================
 ; The Atari OS  maintains a clock that ticks every vertical 
 ; blank.  So, when the clock ticks the frame has started.
@@ -3557,8 +3697,9 @@ WaitTick60
 	cmp RTCLOK60			; Loop until the clock changes
 	beq WaitTick60
 
-	;; if the real-time clock has ticked off approx 29 seconds,  
-	;; then set flag to notify other code.
+;; if the real-time clock has ticked off approx 29 seconds,  
+;; then set flag to notify other code.
+
 ;	lda RTCLOK+1;
 ;	cmp #7	;; Has 29 sec timer passed?
 ;	bne skip_29secTick ;; No.  So don't flag the event.
@@ -3575,6 +3716,53 @@ skip_29secTick
     
 ;	jsr AtariSoundService ;; Play sound in progress if any.
 
+
+;===============================================================================
+; ****   ******   **    *****
+; ** **    **    ****  **  
+; **  **   **   **  ** **
+; **  **   **   **  ** ** ***
+; ** **    **   ****** **  **
+; ****   ****** **  **  *****
+;===============================================================================
+
+; Write selected byte values to diagnostic line on screen.
+
+;	.sbyte " XT XL XR FT FL FR LT LL LR CT CL CR    "
+	
+;	mDebugByte THUMPER_PROXIMITY_TOP,      1 ; XT
+	
+;	mDebugByte THUMPER_PROXIMITY_LEFT,     4 ; XL
+
+;	mDebugByte THUMPER_PROXIMITY_RIGHT,    7 ; XR
+	
+;	mDebugByte THUMPER_FRAME_TOP,         10 ; FT
+
+;	mDebugByte THUMPER_FRAME_LEFT,        13 ; FL
+	
+;	mDebugByte THUMPER_FRAME_RIGHT,       16 ; FR
+	
+;	mDebugByte THUMPER_FRAME_LIMIT_TOP,   19 ; LT
+	
+;	mDebugByte THUMPER_FRAME_LIMIT_LEFT,  22 ; LL
+	
+;	mDebugByte THUMPER_FRAME_LIMIT_RIGHT, 25 ; LR
+	
+;	mDebugByte THUMPER_COLOR_TOP,         28 ; CT
+	
+;	mDebugByte THUMPER_COLOR_LEFT,        31 ; CL
+	
+;	mDebugByte THUMPER_COLOR_RIGHT,       34 ; CR
+	
+;	mDebugByte TITLE_COLOR_COUNTER,       37 ; CC
+
+;	mDebugByte TITLE_DLI_PMCOLOR,         34 ; DP
+;===============================================================================	
+;	mDebugByte TITLE_SLOW_ME_CLOCK,       37 ; SM
+;===============================================================================
+
+
+
 ?Exit_waitFrame
 	rts
 
@@ -3590,12 +3778,38 @@ skip_29secTick
 ;===============================================================================
 
 ;===============================================================================
-; VBL WAIT FRAMES
+; WAIT FRAMES - wait for X vertical blanks.
 ;===============================================================================
-; For diagnostics we need a longer delat for timing purposes.
+; For diagnostics we need a longer delay for timing purposes.
 ; This may not have a purpose in the final game, since everything
 ; should be expected to cycle every frame and maintain states
-; if it is delayed ot not.
+; if it is delayed or not.
+;===============================================================================
+; INPUT
+; X == Number of frames to wait.  
+;      Should be 1 to 255.
+;      1 would be the same as calling WaitFrame directly
+;      0 would cause wait for 256 frames.
+;===============================================================================
+
+WaitFrames ; Frames, plural.
+
+	jsr WaitFrame  ; Do-Nothing loop to wait for jiffy counter change
+	
+	dex            ; frame count - 1
+	bne WaitFrames ; >0 is not done.
+
+	rts
+
+	
+;===============================================================================
+; WAIT FOR (VBI) SCROLL
+;===============================================================================
+; The program must sit still and monitor the VBI's scrolling activity
+; only for diagnostic purposes. 
+; This would not have a purpose in the final game, since all parts
+; should be expected to cycle every frame and maintain states
+; if it is delayed or not.
 ;===============================================================================
 ; INPUT
 ; X == Number of frames to wait.  
@@ -3603,16 +3817,55 @@ skip_29secTick
 ;      0 would cause wait for 256 frames.
 ;===============================================================================
 
-WaitFrames ; Frames, plural.
+WaitForScroll
 
-	jsr WaitFrame  ; Do-Nothing loop to wait for frame counter change
-	
-	dex            ; frame counter - 1
-	
-	bne WaitFrames ; >0 is not done.
+	jsr WaitFrame              ; Wait for the next VBI to finish.
 
+	lda BRICK_SCREEN_IN_MOTION ; Is the VBI still moving the lines?.
+
+	bne WaitForScroll          ; Yes.  Wait again. 
+	
 	rts
 
+	
+;===============================================================================
+; DIAG DESTROY BRICKS - looping brick by brick destruction.
+;===============================================================================
+; Cycle through all the brick positions.
+; Mask out the brick to remove it from the screen.
+; Wait a short time (fraction of a second/several frames) 
+; Continue loop until all positions are gone.
+;===============================================================================
+; Since there is no ball bouncing here there are no Player X and Y 
+; coordinates to convert into brick positions. Mechanically, this 
+; function is operating after coordinate conversion via  
+; BALL_XPOS_TO_BRICK_TABLE and BALL_YPOS_TO_BRICK_TABLE.
+;===============================================================================
+
+Diag_DestroyBricks
+
+	ldx #13 ; Bricks in the row. 13 to 0
+
+?Next_Brick
+
+	ldy #7 ; Number of rows,  7 to 0
+
+?Next_Row
+
+	jsr DestroyBrick ; Remove Brick at X, Y position
+	
+	txa              ; save brick number temporarily.
+	ldx #10       
+	jsr WaitFrames   ; Pause for X frames
+	tax              ; get Brick number back.
+	
+	dey
+	bpl ?Next_Row    ; Rows 7 to 0
+
+	dex
+	bpl ?Next_Brick  ; Bricks 13 to 0		
+
+	rts
 
 
 ;===============================================================================
