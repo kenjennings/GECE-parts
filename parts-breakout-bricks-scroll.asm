@@ -718,7 +718,7 @@ EMPTY_LINE ; 64 bytes of 0.
 ;===============================================================================
 
 DIAG0
-	.sbyte " XT XL XR FT FL FR LT LL LR CT CL CR    "
+	.sbyte " JF SS SI VM H0 H1 H2 H3 H4 H5 H6 H7    "
 
 DIAG1
 	.dc 40 $00
@@ -3691,6 +3691,8 @@ MainSetTitle
 
 WaitFrame
 
+	saveRegs ; Save regs so this is non-disruptive to caller
+
 	lda RTCLOK60			; get frame/jiffy counter
 	
 WaitTick60
@@ -3728,31 +3730,31 @@ skip_29secTick
 
 ; Write selected byte values to diagnostic line on screen.
 
-;	.sbyte " XT XL XR FT FL FR LT LL LR CT CL CR    "
+;	.sbyte " JF SS SI VM H0 H1 H2 H3 H4 H5 H6 H7    "
 	
-;	mDebugByte THUMPER_PROXIMITY_TOP,      1 ; XT
+	mDebugByte RTCLOK60,                         1 ; JF
 	
-;	mDebugByte THUMPER_PROXIMITY_LEFT,     4 ; XL
+	mDebugByte BRICK_SCREEN_START_SCROLL,        4 ; SS
 
-;	mDebugByte THUMPER_PROXIMITY_RIGHT,    7 ; XR
+	mDebugByte BRICK_SCREEN_IMMEDIATE_POSITION,  7 ; SI
 	
-;	mDebugByte THUMPER_FRAME_TOP,         10 ; FT
+	mDebugByte BRICK_SCREEN_IN_MOTION,          10 ; VM
 
-;	mDebugByte THUMPER_FRAME_LEFT,        13 ; FL
+	mDebugByte [BRICK_CURRENT_HSCROL+0],        13 ; H0
 	
-;	mDebugByte THUMPER_FRAME_RIGHT,       16 ; FR
+	mDebugByte [BRICK_CURRENT_HSCROL+1],        16 ; H1
 	
-;	mDebugByte THUMPER_FRAME_LIMIT_TOP,   19 ; LT
+	mDebugByte [BRICK_CURRENT_HSCROL+2],        19 ; H2
 	
-;	mDebugByte THUMPER_FRAME_LIMIT_LEFT,  22 ; LL
+	mDebugByte [BRICK_CURRENT_HSCROL+3],        22 ; H3
 	
-;	mDebugByte THUMPER_FRAME_LIMIT_RIGHT, 25 ; LR
+	mDebugByte [BRICK_CURRENT_HSCROL+4],        25 ; H4
 	
-;	mDebugByte THUMPER_COLOR_TOP,         28 ; CT
+	mDebugByte [BRICK_CURRENT_HSCROL+5],        28 ; H5
 	
-;	mDebugByte THUMPER_COLOR_LEFT,        31 ; CL
+	mDebugByte [BRICK_CURRENT_HSCROL+6],        31 ; H6
 	
-;	mDebugByte THUMPER_COLOR_RIGHT,       34 ; CR
+	mDebugByte [BRICK_CURRENT_HSCROL+7],        34 ; H7
 	
 ;	mDebugByte TITLE_COLOR_COUNTER,       37 ; CC
 
@@ -3764,7 +3766,11 @@ skip_29secTick
 
 
 ?Exit_waitFrame
+
+	safeRTS ; restore regs for safe exit
+
 	rts
+
 
 
 .local
