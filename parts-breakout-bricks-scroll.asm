@@ -1122,8 +1122,8 @@ DISPLAY_LIST_THUMPER_RTS ; destination for animation routine return.
 	; Block line 8
 	; Scan line 127-131, screen line 120-124,   5 Mode C lines, repeated
 	; Scan line 132-133, screen line 125-126,   Two blank scan lines, No scrolling -- sacrifice line
-BRICK_BASE
-	; BRICK_BASE+1, +5, +9, +13, +17, +21, +25, +29 is low byte of row.
+DL_BRICK_BASE
+	; DL_BRICK_BASE+1, +5, +9, +13, +17, +21, +25, +29 is low byte of row.
 	; Only this byte should be needed for scrolling each row.
 	entry .= 0
 	.rept 8 ; repeat for 8 lines of bricks (56 scan lines) 
@@ -1444,8 +1444,8 @@ BRICK_SCREEN_HSCROL
 	.byte 8,0,0
 ;
 ; Offsets of Display List LMS pointers (low byte) of each row position.
-; BRICK_BASE+1, +5, +9, +13, +17, +21, +25, +29 is low byte of row.
-; DISPLAY LIST: offset from BRICK_BASE to low byte of each LMS address
+; DL_BRICK_BASE+1, +5, +9, +13, +17, +21, +25, +29 is low byte of row.
+; DISPLAY LIST: offset from DL_BRICK_BASE to low byte of each LMS address
 BRICK_LMS_OFFSETS 
 	.byte 1,5,9,13,17,21,25,29
 ;
@@ -1516,14 +1516,14 @@ BRICK_SCREEN_DIRECTION
 ; Table of patterns-in-a-can for direction....
 ;
 TABLE_CANNED_BRICK_DIRECTIONS ; random(8) * 8
-	.byte 1,1,1,1,1,1,1,1          ; all view Right/graphics left
-	.byte $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF  ; all view Left/graphics right 
-	.byte 1,1,1,1,$FF,$FF,$FF,$FF      ; top go Right, Bottom go Left
-	.byte $FF,$FF,$FF,$FF,1,1,1,1      ; top go Left, Bottom go Right
-	.byte 1,1,$FF,$FF,1,1,$FF,$FF      ; 2 go right, 2 go left, etc.
-	.byte $FF,$FF,1,1,$FF,$FF,1,1      ; 2 go left, 2 go right, etc.
-	.byte 1,$FF,1,$FF,1,$FF,1,$FF      ; right, left, right, left...
-	.byte $FF,1,$FF,1,$FF,1,$FF,1      ; left, right, left, right...
+	.byte 1,1,1,1,1,1,1,1                 ; all view Right/graphics left
+	.byte $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF ; all view Left/graphics right 
+	.byte 1,1,1,1,$FF,$FF,$FF,$FF         ; top go Right, Bottom go Left
+	.byte $FF,$FF,$FF,$FF,1,1,1,1         ; top go Left, Bottom go Right
+	.byte 1,1,$FF,$FF,1,1,$FF,$FF         ; 2 go right, 2 go left, etc.
+	.byte $FF,$FF,1,1,$FF,$FF,1,1         ; 2 go left, 2 go right, etc.
+	.byte 1,$FF,1,$FF,1,$FF,1,$FF         ; right, left, right, left...
+	.byte $FF,1,$FF,1,$FF,1,$FF,1         ; left, right, left, right...
 ;
 ; Brick scroll speed (HSCROLs +/- per frame).
 ; Note, that row 8 MUST ALWAYS be the fastest/max speed
@@ -1713,7 +1713,7 @@ BRICK_YPOS_BOTTOM_TABLE
 	.endr
 
 
-; BRICK_BASE+1, +5, +9, +13, +17, +21, +25, +29 is low byte of row.
+; DL_BRICK_BASE+1, +5, +9, +13, +17, +21, +25, +29 is low byte of row.
 
 ;BRICK_LINE_MASTER
 ;	.byte ~00011111, ~11111011, ~11111111, ~01111111, ~11101111 ; 0, 1, 2, 3
@@ -2152,17 +2152,30 @@ End_Thumper_Bumper_VBI
 ; be used to reset to starting positions before setting up a scroll.
 ;
 ; The second scroll is fine scroll from current position to target position.
+
+; ***********************************************************
+; Usually, I use X for looping, and Y as optional index
+; to something, because only Y allows (ZPAGE),Y addressing.
+; But, I need to update/increment the LMS address in a 
+; Display list based on an offset and only X allows
+; INC MEMORY,X.  Since there is no zero page indirection 
+; here, Y is used for row counting and X is for DL offset.
 ;
 	lda BRICK_SCREEN_IMMEDIATE_POSITION ; move screen directly.
 	beq Fine_Scroll_Display             ; if not set, then try fine scroll
+
+; ***************
+; IMMEDIATE MOVE   
+; ***************
 	
-	ldx #7
+	ldy #7
+
 Do_Next_Immediate_Move
-	ldy BRICK_LMS_OFFSETS,x  ; Y = current position of LMS low byte in Display List
-	lda BRICK_SCREEN_TARGET_LMS,x    ; Get destination position.
-	sta BRICK_BASE,y                 ; Set the new Display List LMS pointer.
-	lda BRICK_SCREEN_TARGET_HSCROL,x ; get the destination position.
-	sta BRICK_CURRENT_HSCROL,x       ; set the current Hscrol for this row.
+	ldx BRICK_LMS_OFFSETS,y  ; X = current position of LMS low byte in Display List
+	lda BRICK_SCREEN_TARGET_LMS,y    ; Get destination position.
+	sta DL_BRICK_BASE,x              ; Set the new Display List LMS pointer.
+	lda BRICK_SCREEN_TARGET_HSCROL,y ; get the destination position.
+	sta BRICK_CURRENT_HSCROL,y       ; set the current Hscrol for this row.
 	
 	dex
 	bpl Do_Next_Immediate_Move
@@ -2188,98 +2201,101 @@ Check_Brick_Scroll
 ;	beq End_Brick_Scroll_Update
 	jmp End_Brick_Scroll_Update
 
+	
 Set_Brick_In_Motion
 	lda #0     ; Temporarily indicate no motion
 	sta BRICK_SCREEN_IN_MOTION 
+
+; ***************
+; DELAY OR SCROLL   
+; ***************
 	
 	ldx #7 ; start at last/bottom row.
-	
+
 Check_Pause_or_Movement
-	lda BRICK_SCREEN_MOVE_DELAY,x ; Delay for frame count?
-	beq Move_Brick_Row
-	inc BRICK_SCREEN_IN_MOTION ; indicate things in progress
-	dec BRICK_SCREEN_MOVE_DELAY,x
+	lda BRICK_SCREEN_MOVE_DELAY,y ; Delay for frame count?
+	beq Move_Brick_Row            ; No.  Is there fine scroll?
+	inc BRICK_SCREEN_IN_MOTION    ; pause still means things in progress
+	dec BRICK_SCREEN_MOVE_DELAY,y
 	jmp Do_Next_Brick_Row
 	
 Move_Brick_Row
-	ldy BRICK_LMS_OFFSETS,x ; Y = current position of LMS low byte in Display List
-	lda BRICK_BASE,y                ; What is the Display List LMS pointer now?
-	cmp BRICK_SCREEN_TARGET_LMS,x   ; Does it match target?
+	ldx BRICK_LMS_OFFSETS,y ; X = current position of LMS low byte in Display List
+	lda DL_BRICK_BASE,x             ; What is the Display List LMS pointer now?
+	cmp BRICK_SCREEN_TARGET_LMS,y   ; Does it match target?
 	beq Finish_Brick_HScroll        ; Yes.  Then is more HScroll needed?
 
-	lda BRICK_SCREEN_DIRECTION,x 	; Are we going left or right?
+	lda BRICK_SCREEN_DIRECTION,y 	; Are we going left or right?
 	bpl Do_Bricks_Right_Scroll		; -1 = view Right/graphics left, +1 = view left/graphics right
 
 ; scroll View Right/screen contents left 
-	lda BRICK_CURRENT_HSCROL,x      ; get the current Hscrol for this row.
+	lda BRICK_CURRENT_HSCROL,y      ; get the current Hscrol for this row.
 	sec
-	sbc BRICK_SCREEN_HSCROL_MOVE,X  ; decrement it to move graphics left.
+	sbc BRICK_SCREEN_HSCROL_MOVE,y  ; decrement it to move graphics left.
 	bpl Update_HScrol       ; If not negative, then no coarse scroll.
 
 	clc                     ; Add to return this...
 	adc #8                  ; ... to positive. (using 8, not 16 color clocks)
-	pha
-	lda BRICK_BASE,y        ; Increment LMS to Coarse scroll it
-	adc #1
-	sta BRICK_BASE,y
-	pla
-	bne Update_HScrol
+
+	inc DL_BRICK_BASE,x     ; Increment LMS to Coarse scroll it
+	bne Update_HScrol       ; JMP - low byte Should always be non-zero.
 	
 Do_Bricks_Right_Scroll	    ; Move view left/screen contents Right
-	lda BRICK_CURRENT_HSCROL,x      ; get the current Hscrol for this row.
+	lda BRICK_CURRENT_HSCROL,y      ; get the current Hscrol for this row.
 	clc
-	adc BRICK_SCREEN_HSCROL_MOVE,X  ; increment it to move graphics right.
+	adc BRICK_SCREEN_HSCROL_MOVE,y  ; increment it to move graphics right.
 	cmp #8 ; if greater or equal to 8
 	bcc Update_HScrol       ; If no carry, then less than 8/limit.
 
 	sec                     
 	sbc #8                  ; Subtract 8 (using 8, not 16 color clocks)
-	pha
 	
-	lda BRICK_BASE,y 
-	sbc #1       ; Coarse scroll it
+	dec DL_BRICK_BASE,x     ; Decrement LMS to coarse scroll it.
 	; need special compensation to check for end position, because that 
 	; is at byte 0, hscrol 8, not hscrol 0-7
 
-
 	bpl Update_HScrol ; still positive, so we did not pass byte 0, hscrol 8
 	lda #0            ; back it up to the end position...
-	sta BRICK_BASE,y  ; byte 0
+	sta DL_BRICK_BASE,x  ; byte 0
 	lda #8            ; hscrol 8
 	bpl Update_HScrol
 
 ; The current LMS matches the target LMS. 
 ; a final Hscroll may be needed.
 Finish_Brick_HScroll 
-	lda BRICK_CURRENT_HSCROL,X
-	cmp BRICK_SCREEN_TARGET_HSCROL,x
+	lda BRICK_CURRENT_HSCROL,y
+	cmp BRICK_SCREEN_TARGET_HSCROL,y
 	beq Do_Next_Brick_Row ; Everything matches. nothing to do.
 
-	lda BRICK_SCREEN_DIRECTION,x 	; Are we going left or right?
-	bpl Do_Finish_Right_Scroll		; -1 = view left/graphics right, +1 = view Right/graphics left
+	lda BRICK_SCREEN_DIRECTION,y    ; Are we going left or right?
+	bpl Do_Finish_Right_Scroll      ; -1 = view left/graphics right, +1 = view Right/graphics left
 	
 ; scroll View Left/screen contents right 
-	lda BRICK_CURRENT_HSCROL,x      ; get the current Hscrol for this row.
+	lda BRICK_CURRENT_HSCROL,y      ; get the current Hscrol for this row.
 	sec
-	sbc BRICK_SCREEN_HSCROL_MOVE,X  ; decrement it to move graphics left.
+	sbc BRICK_SCREEN_HSCROL_MOVE,y  ; decrement it to move graphics left.
 	bmi Set_Left_Home               ; If it went negative reset to end position.
 	bpl Update_HScrol               ; If not negative, then no coarse scroll.
 Set_Left_Home
-	lda BRICK_SCREEN_TARGET_HSCROL,x ; if it went negative then reset to home
-	sta BRICK_CURRENT_HSCROL,X
+	lda BRICK_SCREEN_TARGET_HSCROL,y ; if it went negative then reset to home
+	sta BRICK_CURRENT_HSCROL,y
 	jmp Update_HScrol
 	
 Do_Finish_Right_Scroll
-	lda BRICK_CURRENT_HSCROL,x      ; get the current Hscrol for this row.
+	lda BRICK_CURRENT_HSCROL,y       ; get the current Hscrol for this row.
 	clc
-	adc BRICK_SCREEN_HSCROL_MOVE,X  ; increment it to move line right.
-	cmp BRICK_SCREEN_TARGET_HSCROL,X ; if greater or equal to, then set to limit
-	bcc Update_HScrol       ; If no carry, then did not exceed limit.
-	lda BRICK_SCREEN_TARGET_HSCROL,X                     
+	adc BRICK_SCREEN_HSCROL_MOVE,y   ; increment it to move line right.
+	cmp BRICK_SCREEN_TARGET_HSCROL,y ; if greater or equal to, then set to limit
+	bcc Update_HScrol                ; If no carry, then did not exceed limit.
+	lda BRICK_SCREEN_TARGET_HSCROL,y                     
 
 Update_HScrol
 	inc BRICK_SCREEN_IN_MOTION ; indicate things in motion
-	sta BRICK_CURRENT_HSCROL,X ; Save new HSCROL.
+	sta BRICK_CURRENT_HSCROL,y ; Save new HSCROL.
+
+; ***************
+; END LOOP  
+; ***************
 
 Do_Next_Brick_Row
 	dex
@@ -2663,56 +2679,6 @@ End_DLI_4 ; End of routine.  Point to next routine.
 	
 
 
-.local	
-;===============================================================================
-; ****   ******   **    *****
-; ** **    **    ****  **  
-; **  **   **   **  ** **
-; **  **   **   **  ** ** ***
-; ** **    **   ****** **  **
-; ****   ****** **  **  *****
-;===============================================================================
-
-;DIAG_TEMP1 = PARAM_89 ; = $d0 ; DIAG_TEMP1
-
-;---------------------------------------------------------------------
-; Write hex value of a byte to the DIAG1 screen line.
-; INPUT:
-; A = byte to write
-; Y = starting position.
-;---------------------------------------------------------------------
-DiagByte
-
-	sta DIAG_TEMP1       ; store the byte to retrieve later
-
-	saveRegs ; Save regs so this is non-disruptive to caller
-
-	lda DIAG_TEMP1
-	
-	lsr  ; divide by 16 to shift it into the low nybble ( value of 0-F)
-	lsr
-	lsr
-	lsr
-	tax 
-	lda ?NYBBLE_TO_HEX,x  ; simplify. no math. just lookup table.
-
-	sta DIAG1,y           ; write into screen RAM.
-	
-	lda DIAG_TEMP1        ; re-fetch the byte to display
-
-	and #$0F              ; low nybble is second character
-	tax
-	lda ?NYBBLE_TO_HEX,x  ; simplify. no math.  just lookup table.
-
-	iny
-	sta DIAG1,y
-
-	safeRTS ; restore regs for safe exit
-
-?NYBBLE_TO_HEX ; hex binary values 0 - F in internal format
-	.sbyte "0123456789ABCDEF"
-
-	
 	
 
 ;===============================================================================
@@ -3087,7 +3053,7 @@ MainSetCenterTargetScroll
 	lda BRICK_LMS_OFFSETS,x      ; Get LMS low byte offset per the row.
 	tax
 	lda BRICK_SCREEN_LMS,y       ; Get Starting LMS position per scroll direction.
-	sta BRICK_BASE,x             ; Set low byte of LMS to move row
+	sta DL_BRICK_BASE,x             ; Set low byte of LMS to move row
 	
 	ldx PARAM_86 ; Row           ; Get the row number back.
 
@@ -3513,32 +3479,34 @@ FOREVER
 ;===============================================================================
 
 ; Write selected byte values to diagnostic line on screen.
+; NOTE: Moved to inside WaitFrame to insure this is done as 
+; soon as the frame starts.
 
-;	.sbyte " XT XL XR FT FL FR LT LL LR CT CL CR    "
+;	.sbyte " JF SS SI VM H0 H1 H2 H3 H4 H5 H6 H7    "
 	
-;	mDebugByte THUMPER_PROXIMITY_TOP,      1 ; XT
+;	mDebugByte RTCLOK60,                         1 ; JF
 	
-;	mDebugByte THUMPER_PROXIMITY_LEFT,     4 ; XL
+;	mDebugByte BRICK_SCREEN_START_SCROLL,        4 ; SS
 
-;	mDebugByte THUMPER_PROXIMITY_RIGHT,    7 ; XR
+;	mDebugByte BRICK_SCREEN_IMMEDIATE_POSITION,  7 ; SI
 	
-;	mDebugByte THUMPER_FRAME_TOP,         10 ; FT
+;	mDebugByte BRICK_SCREEN_IN_MOTION,          10 ; VM
 
-;	mDebugByte THUMPER_FRAME_LEFT,        13 ; FL
+;	mDebugByte [BRICK_CURRENT_HSCROL+0],        13 ; H0
 	
-;	mDebugByte THUMPER_FRAME_RIGHT,       16 ; FR
+;	mDebugByte [BRICK_CURRENT_HSCROL+1],        16 ; H1
 	
-;	mDebugByte THUMPER_FRAME_LIMIT_TOP,   19 ; LT
+;	mDebugByte [BRICK_CURRENT_HSCROL+2],        19 ; H2
 	
-;	mDebugByte THUMPER_FRAME_LIMIT_LEFT,  22 ; LL
+;	mDebugByte [BRICK_CURRENT_HSCROL+3],        22 ; H3
 	
-;	mDebugByte THUMPER_FRAME_LIMIT_RIGHT, 25 ; LR
+;	mDebugByte [BRICK_CURRENT_HSCROL+4],        25 ; H4
 	
-;	mDebugByte THUMPER_COLOR_TOP,         28 ; CT
+;	mDebugByte [BRICK_CURRENT_HSCROL+5],        28 ; H5
 	
-;	mDebugByte THUMPER_COLOR_LEFT,        31 ; CL
+;	mDebugByte [BRICK_CURRENT_HSCROL+6],        31 ; H6
 	
-;	mDebugByte THUMPER_COLOR_RIGHT,       34 ; CR
+;	mDebugByte [BRICK_CURRENT_HSCROL+7],        34 ; H7
 	
 ;	mDebugByte TITLE_COLOR_COUNTER,       37 ; CC
 
@@ -3660,7 +3628,6 @@ Setup
 	cpx #MAX_PIXEL_Y
 	bne ?Init_Vertical_Thumpers
 
- 
 	rts 
  
 
@@ -3773,7 +3740,7 @@ skip_29secTick
 
 
 
-.local
+.local	
 ;===============================================================================
 ; ****   ******   **    *****
 ; ** **    **    ****  **  
@@ -3783,6 +3750,47 @@ skip_29secTick
 ; ****   ****** **  **  *****
 ;===============================================================================
 
+;DIAG_TEMP1 = PARAM_89 ; = $d0 ; DIAG_TEMP1
+
+;---------------------------------------------------------------------
+; Write hex value of a byte to the DIAG1 screen line.
+; INPUT:
+; A = byte to write
+; Y = starting position.
+;---------------------------------------------------------------------
+DiagByte
+
+	sta DIAG_TEMP1       ; store the byte to retrieve later
+
+	saveRegs ; Save regs so this is non-disruptive to caller
+
+	lda DIAG_TEMP1
+	
+	lsr  ; divide by 16 to shift it into the low nybble ( value of 0-F)
+	lsr
+	lsr
+	lsr
+	tax 
+	lda ?NYBBLE_TO_HEX,x  ; simplify. no math. just lookup table.
+
+	sta DIAG1,y           ; write into screen RAM.
+	
+	lda DIAG_TEMP1        ; re-fetch the byte to display
+
+	and #$0F              ; low nybble is second character
+	tax
+	lda ?NYBBLE_TO_HEX,x  ; simplify. no math.  just lookup table.
+
+	iny
+	sta DIAG1,y
+
+	safeRTS ; restore regs for safe exit
+
+?NYBBLE_TO_HEX ; hex binary values 0 - F in internal format
+	.sbyte "0123456789ABCDEF"
+
+	
+	
 ;===============================================================================
 ; WAIT FRAMES - wait for X vertical blanks.
 ;===============================================================================
