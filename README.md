@@ -17,7 +17,7 @@ Four raster bar/gradient color cycles move across the eight characters the entir
 After enjoying the title for a couple seconds the title vertically fine scrolls up off the screen to disappear.
 After a couple seconds of blank screen the animation repeats.
 
-The characters are a custom font in Mode 6 text.  Each character is built of two vertically stacked characters with the  image occuping the middle 12 scan lines (6 in the top character, 6 in the bottom).  Since the characters are displayed spaced apart they also use all 8 horizontal color clocks of pixel real-estate in the character image.
+The characters are a custom font in Mode 6 text.  Each character is built of two, vertically-stacked characters with the  image occuping the middle 12 scan lines (6 in the top character, 6 in the bottom).  Since the characters are displayed spaced apart they also use all 8 horizontal color clocks of pixel real-estate in the character image.
 
 Considering 12 visible scan lines with four independent raster bars that's potentially 48 visible colors in the title.
 
@@ -27,9 +27,9 @@ The character flying in is a Player object, which also carries the color gradien
 
 Note that the gradient colors move consistently even during vertical scrolling and while the scrolling causes the characters' scan lines to disappear.
 
-Very little is calculated.  Most things are played back from tables -- Title Text values and positions, the equivalent character data offsets for the Player, fine scroll values, coarse scroll updates, raster bar/gradient color cyles, offsets to the color cycling when scan lines are being lost, etc.
+Very little is calculated.  Most activity results from iterating through data in tables -- Title Text values and positions, the equivalent character data offsets for the Player, fine scroll values, coarse scroll updates, raster bar/gradient color cyles, offsets to the color cycling when scan lines are being lost, etc.
 
-The vertical coarse scrolling isn't even done by updating the LMS addresses.   Instead, the small section of the display list showing the title lines is presented like a subroutine.   A Jump in the main display list goes to one of the Title display lists, and at the ehd of the title display list it jumps back to the main display list.   Only one byte of the Jump in the main display list is updated to change the vertical coarse scroll state.
+The vertical coarse scrolling isn't even done by updating the LMS addresses.  Instead, the small section of the display list showing the title lines is implemented like a subroutine.  A Jump in the main display list goes to one of the Title display lists, and the end of the Title display list jumps back to the main display list.  Therefore only one byte of the Jump address in the main display list is updated to change the vertical coarse scroll state.
 
 
 
