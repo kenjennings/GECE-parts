@@ -588,8 +588,8 @@ DIAG_TEMP1 = PARAM_93 ; = $d5 ; DIAG_TEMP1
 ;	*=LOMEM_DOS     ; $2000  ; After Atari DOS 2.0s
 ;	*=LOMEM_DOS_DUP ; $3308  ; Alternatively, after Atari DOS 2.0s and DUP
 
-; This will not be a terribly big or complicated game.  Begin after DUP.
-; Will be changed in a moment when alignment is set Player/Missile memory.
+; This will not be a terribly big or complicated game.  Begin after DOS/DUP.
+; This will change in a moment when alignment is reset for Player/Missile memory.
 
 	*=$3308    
 
@@ -676,21 +676,21 @@ CHARACTER_SET_01
 
 
 BRICK_LINE0 
-	.ds $0040 ; 64 bytes for left/right scroll. Relative +$0000
+	.ds $40 ; 64 bytes for left/right scroll. Relative +$0000
 BRICK_LINE1
-	.ds $0040 ; 64 bytes for left/right scroll. Relative +$0040
+	.ds $40 ; 64 bytes for left/right scroll. Relative +$0040
 BRICK_LINE2
-	.ds $0040 ; 64 bytes for left/right scroll. Relative +$0080
+	.ds $40 ; 64 bytes for left/right scroll. Relative +$0080
 BRICK_LINE3
-	.ds $0040 ; 64 bytes for left/right scroll. Relative +$00C0
+	.ds $40 ; 64 bytes for left/right scroll. Relative +$00C0
 BRICK_LINE4
-	.ds $0040 ; 64 bytes for left/right scroll. Relative +$0100
+	.ds $40 ; 64 bytes for left/right scroll. Relative +$0100
 BRICK_LINE5
-	.ds $0040 ; 64 bytes for left/right scroll. Relative +$0140
+	.ds $40 ; 64 bytes for left/right scroll. Relative +$0140
 BRICK_LINE6
-	.ds $0040 ; 64 bytes for left/right scroll. Relative +$0180
+	.ds $40 ; 64 bytes for left/right scroll. Relative +$0180
 BRICK_LINE7
-	.ds $0040 ; 64 bytes for left/right scroll. Relative +$01C0
+	.ds $40 ; 64 bytes for left/right scroll. Relative +$01C0
 
 
 
@@ -699,7 +699,7 @@ BRICK_LINE7
 ; Master copies (source copied to working screen)
 ;
 EMPTY_LINE ; 64 bytes of 0.
-	.ds $0040 ; 64 bytes of 0.                  Relative +$0300
+	.ds $40 ; 64 bytes of 0.                  Relative +$0200
 
 
 
@@ -718,6 +718,7 @@ EMPTY_LINE ; 64 bytes of 0.
 ;===============================================================================
 
 DIAG0
+;	.sbyte " JF SS SI VM H0 H1 H2 H3 H4    DE SP DI "
 	.sbyte " JF SS SI VM  H0 1 2 3 4 5 6 7  DE SP DI"
 
 DIAG1
@@ -1130,7 +1131,7 @@ DL_BRICK_BASE
 	; scan line +0 to +4  -- 5 scan lines of mode C copied/extended
 
 	.byte DL_MAP_C|DL_LMS|DL_VSCROLL|DL_HSCROLL
-	.word BRICK_LINE0+[entry*$40] ; not immediately offset into middle of graphics line
+	.word [BRICK_LINE0+entry] ; not immediately offset into middle of graphics line
 ;	.word [GAMEOVER_LINE0+[entry*20]-2] 
 
 ;===============================================================================
@@ -1164,7 +1165,7 @@ DL_BRICK_BASE
 
 	; two blank scan line
 	.byte DL_BLANK_2
-	entry .= entry+1 ; next entry in table.
+	entry .= entry+$40 ; next BRICK Line.
 	.endr
 	
 	; HKernel ends:
@@ -1426,9 +1427,9 @@ DL_BRICK_BASE
 ;
 ; Thus the origination position for each of the three screens relative to the 
 ; base address of each line:
-; Left Screen: Memory Scan +0,  HSCROL = 8
+; Left Screen:   Memory Scan +0,  HSCROL = 8
 ; Center Screen: Memory Scan +20, HSCROL = 0 (or Memory Scan +21, HSCROL = 8)
-; Right Screen: Memory Scan +41, HSCROL = 0 (or Memory Scan +42, HSCROL = 8)
+; Right Screen:  Memory Scan +41, HSCROL = 0 (or Memory Scan +42, HSCROL = 8)
 ;
 ; Reference lookup for Display List LMS offset for screen postition:
 ; 0 = left
@@ -1438,82 +1439,41 @@ DL_BRICK_BASE
 BRICK_SCREEN_LMS  
 	.byte 0,20,41
 ;
-; and HSCROL value to align the correct bytes...
+; and reference HSCROL value to align the correct bytes...
 ;
 BRICK_SCREEN_HSCROL 
 	.byte 8,0,0
 ;
-; Offsets of Display List LMS pointers (low byte) of each row position.
+; DISPLAY LIST: offset from DL_BRICK_BASE to the low byte of LMS addresses:
 ; DL_BRICK_BASE+1, +5, +9, +13, +17, +21, +25, +29 is low byte of row.
-; DISPLAY LIST: offset from DL_BRICK_BASE to low byte of each LMS address
+;
 BRICK_LMS_OFFSETS 
 	.byte 1,5,9,13,17,21,25,29
 ;
-; DLI: HSCROL/fine scrolling position.
+; MAIN code sets the TARGET configuration of each line of 
+; the playfield.  
+; The VBI takes these instructions and adjusts the display 
+; values during each frame.  
+; The Display List provides the coarse scroll position.  
+; The DLI sets the fine scroll and the colors for each line.
+
+;
+; DLI: Current HSCROL/fine scrolling position.
 ;
 BRICK_CURRENT_HSCROL 
 	.byte 0,0,0,0,0,0,0,0
 ;
-; DLI: Set line colors....  introducing a little more variety than 
-; the original game and elsewhere on the screen.
-;
-BRICK_CURRENT_COLOR ; Base color for brick gradients
-	.ds 8 ; 8 bytes, one for each row.       
-
-TABLE_COLOR_TITLE ; Colors for title screen.  R a i n b o w
-	.byte COLOR_LITE_BLUE+2
-		.byte COLOR_LITE_BLUE+2
-			.byte COLOR_LITE_BLUE+2
-				.byte COLOR_LITE_BLUE+2
-					.byte COLOR_LITE_BLUE+2
-						.byte COLOR_LITE_BLUE+2
-							.byte COLOR_LITE_BLUE+2
-								.byte COLOR_LITE_BLUE+2
-	.byte COLOR_ORANGE1+2
-	.byte COLOR_RED_ORANGE+2
-	.byte COLOR_PURPLE+2
-	.byte COLOR_BLUE1+2
-	.byte COLOR_LITE_BLUE+2
-	.byte COLOR_BLUE_GREEN+2
-	.byte COLOR_YELLOW_GREEN+2
-	.byte COLOR_LITE_ORANGE+2
-
-TABLE_COLOR_BRICKS ; Colors for normal game bricks.
-	.byte COLOR_PINK+2        ; "Red"
-	.byte COLOR_PINK+2        ; "Red"
-	.byte COLOR_RED_ORANGE+2  ; "Orange"
-	.byte COLOR_RED_ORANGE+2  ; "Orange"
-	.byte COLOR_GREEN+2       ; "Green"
-	.byte COLOR_GREEN+2       ; "Green"
-	.byte COLOR_LITE_ORANGE+2 ; "Yellow"
-	.byte COLOR_LITE_ORANGE+2 ; "Yellow"
-
-TABLE_COLOR_GAME_OVER ; Colors for Game Over Text.
-	.byte COLOR_ORANGE1+2  ; 
-	.byte COLOR_ORANGE1+2  ; 
-	.byte COLOR_RED_ORANGE+2  ; "Orange"
-	.byte COLOR_RED_ORANGE+2  ; "Orange"
-	.byte COLOR_ORANGE2+2  ; 
-	.byte COLOR_ORANGE2+2  ; 
-	.byte COLOR_PINK+2        ; "Red"
-	.byte COLOR_PINK+2        ; "Red"
-
-	
-;
-; MAIN code sets the following sets of configuration
-; per each line of the playfield.  VBI takes these
-; instructions and moves display during each frame.
-;
-; Target LMS offset/coarse scroll to move the display. 
-; One target per display line... line 0 to line 7.
-;
-BRICK_SCREEN_TARGET_LMS 
-	.byte 20,20,20,20,20,20,20,20
-;
-; Target HSCROL/fine scrolling destination for moving display.
+; VBI/MAIN: Target HSCROL/fine scrolling destination for moving display.
 ;
 BRICK_SCREEN_TARGET_HSCROL 
 	.byte 0,0,0,0,0,0,0,0
+;
+; Target LMS offset/coarse scroll to move the display. 
+; One target per display line... line 0 to line 7.
+; See BRICK_LMS_OFFSETS for actual locations of LMS.
+;
+BRICK_SCREEN_TARGET_LMS 
+	.byte 20,20,20,20,20,20,20,20
 ;
 ; Increment or decrement the movement direction? 
 ; -1=view Left/graphics right, +1=view Right/graphics left
@@ -1570,6 +1530,53 @@ TABLE_CANNED_BRICKS_DELAY
 	.byte 56,48,40,32,24,16,8,0   ; 8 frames each
 	.byte 0,10,20,30,30,20,10,0   ; 1/2 second top/bottom gradient
 	.byte 40,20,30,70,120,20,60,0 ; 2 second randomish 
+
+;
+; DLI: Set line colors....  introducing a little more variety than 
+; the original game and elsewhere on the screen.
+;
+BRICK_CURRENT_COLOR ; Base color for brick gradients
+	.ds 8 ; 8 bytes, one for each row.       
+
+TABLE_COLOR_TITLE ; Colors for title screen.  R a i n b o w
+	.byte COLOR_LITE_BLUE+2
+		.byte COLOR_LITE_BLUE+2
+			.byte COLOR_LITE_BLUE+2
+				.byte COLOR_LITE_BLUE+2
+					.byte COLOR_LITE_BLUE+2
+						.byte COLOR_LITE_BLUE+2
+							.byte COLOR_LITE_BLUE+2
+								.byte COLOR_LITE_BLUE+2
+	.byte COLOR_ORANGE1+2
+	.byte COLOR_RED_ORANGE+2
+	.byte COLOR_PURPLE+2
+	.byte COLOR_BLUE1+2
+	.byte COLOR_LITE_BLUE+2
+	.byte COLOR_BLUE_GREEN+2
+	.byte COLOR_YELLOW_GREEN+2
+	.byte COLOR_LITE_ORANGE+2
+
+TABLE_COLOR_BRICKS ; Colors for normal game bricks.
+	.byte COLOR_PINK+2        ; "Red"
+	.byte COLOR_PINK+2        ; "Red"
+	.byte COLOR_RED_ORANGE+2  ; "Orange"
+	.byte COLOR_RED_ORANGE+2  ; "Orange"
+	.byte COLOR_GREEN+2       ; "Green"
+	.byte COLOR_GREEN+2       ; "Green"
+	.byte COLOR_LITE_ORANGE+2 ; "Yellow"
+	.byte COLOR_LITE_ORANGE+2 ; "Yellow"
+
+TABLE_COLOR_GAME_OVER ; Colors for Game Over Text.
+	.byte COLOR_ORANGE1+2  ; 
+	.byte COLOR_ORANGE1+2  ; 
+	.byte COLOR_RED_ORANGE+2  ; "Orange"
+	.byte COLOR_RED_ORANGE+2  ; "Orange"
+	.byte COLOR_ORANGE2+2  ; 
+	.byte COLOR_ORANGE2+2  ; 
+	.byte COLOR_PINK+2        ; "Red"
+	.byte COLOR_PINK+2        ; "Red"
+
+
 ;
 ; MAIN flag to VBI requesting start of screen transition.
 ;
@@ -1621,7 +1628,7 @@ BRICK_BASE_LINE_TABLE_HI
 	.byte >[BRICK_LINE0+[entry*64]+21]
 	entry .= entry+1 ; next entry in table.
 	.endr
-
+	
 ;
 ; Mask to erase an individual brick, numbered 0 to 13.
 ; Starting byte offset for visible screen memory, then the AND mask 
@@ -3662,6 +3669,9 @@ skip_29secTick
 ; Write selected byte values to diagnostic line on screen.
 
 ;	.sbyte " JF SS SI VM H0 H1 H2 H3 H4    DE SP DI "
+
+;	.sbyte " JF SS SI VM  H0 1 2 3 4 5 6 7  DE SP DI"
+
 	
 	mDebugByte RTCLOK60,                         1 ; JF
 	
@@ -3672,28 +3682,130 @@ skip_29secTick
 	mDebugByte BRICK_SCREEN_IN_MOTION,          10 ; VM
 
 
-	mDebugByte BRICK_CURRENT_HSCROL+0,        14 ; H0
+;	mDebugByte BRICK_CURRENT_HSCROL+0,        14 ; H0
 	
-	mDebugByte BRICK_CURRENT_HSCROL+1,        16 ; H1
+;	mDebugByte BRICK_CURRENT_HSCROL+1,        16 ; H1
 	
-	mDebugByte BRICK_CURRENT_HSCROL+2,        18 ; H2
+;	mDebugByte BRICK_CURRENT_HSCROL+2,        18 ; H2
 	
-	mDebugByte BRICK_CURRENT_HSCROL+3,        20 ; H3
+;	mDebugByte BRICK_CURRENT_HSCROL+3,        20 ; H3
 	
-	mDebugByte BRICK_CURRENT_HSCROL+4,        22 ; H4
+;	mDebugByte BRICK_CURRENT_HSCROL+4,        22 ; H4
 
-	mDebugByte BRICK_CURRENT_HSCROL+5,        24 ; H5
+;	mDebugByte BRICK_CURRENT_HSCROL+5,        24 ; H5
 	
-	mDebugByte BRICK_CURRENT_HSCROL+6,        26 ; H6
+;	mDebugByte BRICK_CURRENT_HSCROL+6,        26 ; H6
 
-	mDebugByte BRICK_CURRENT_HSCROL+7,        28 ; H7
+;	mDebugByte BRICK_CURRENT_HSCROL+7,        28 ; H7
+
+
+;	mDebugByte BRICK_SCREEN_TARGET_HSCROL+0,        14 ; H0
+	
+;	mDebugByte BRICK_SCREEN_TARGET_HSCROL+1,        16 ; H1
+	
+;	mDebugByte BRICK_SCREEN_TARGET_HSCROL+2,        18 ; H2
+	
+;	mDebugByte BRICK_SCREEN_TARGET_HSCROL+3,        20 ; H3
+	
+;	mDebugByte BRICK_SCREEN_TARGET_HSCROL+4,        22 ; H4
+
+;	mDebugByte BRICK_SCREEN_TARGET_HSCROL+5,        24 ; H5
+	
+;	mDebugByte BRICK_SCREEN_TARGET_HSCROL+6,        26 ; H6
+
+;	mDebugByte BRICK_SCREEN_TARGET_HSCROL+7,        28 ; H7
+
+
+	mDebugByte DL_BRICK_BASE+1,        14 ; H0
+	
+	mDebugByte DL_BRICK_BASE+5,        16 ; H1
+	
+	mDebugByte DL_BRICK_BASE+9,        18 ; H2
+	
+	mDebugByte DL_BRICK_BASE+13,        20 ; H3
+	
+	mDebugByte DL_BRICK_BASE+17,        22 ; H4
+
+	mDebugByte DL_BRICK_BASE+21,        24 ; H5
+	
+	mDebugByte DL_BRICK_BASE+25,        26 ; H6
+
+	mDebugByte DL_BRICK_BASE+29,        28 ; H7
 
 	
-	mDebugByte PARAM_87,        32 ; DE
+;	mDebugByte BRICK_SCREEN_TARGET_LMS+0,        14 ; H0
 	
-	mDebugByte PARAM_88,        35 ; SP
+;	mDebugByte BRICK_SCREEN_TARGET_LMS+1,        16 ; H1
 	
-	mDebugByte PARAM_89,        38 ; DI
+;	mDebugByte BRICK_SCREEN_TARGET_LMS+2,        18 ; H2
+	
+;	mDebugByte BRICK_SCREEN_TARGET_LMS+3,        20 ; H3
+	
+;	mDebugByte BRICK_SCREEN_TARGET_LMS+4,        22 ; H4
+
+;	mDebugByte BRICK_SCREEN_TARGET_LMS+5,        24 ; H5
+	
+;	mDebugByte BRICK_SCREEN_TARGET_LMS+6,        26 ; H6
+
+;	mDebugByte BRICK_SCREEN_TARGET_LMS+7,        28 ; H7
+
+
+;	mDebugByte BRICK_SCREEN_DIRECTION+0,        14 ; H0
+	
+;	mDebugByte BRICK_SCREEN_DIRECTION+1,        16 ; H1
+	
+;	mDebugByte BRICK_SCREEN_DIRECTION+2,        18 ; H2
+	
+;	mDebugByte BRICK_SCREEN_DIRECTION+3,        20 ; H3
+	
+;	mDebugByte BRICK_SCREEN_DIRECTION+4,        22 ; H4
+
+;	mDebugByte BRICK_SCREEN_DIRECTION+5,        24 ; H5
+	
+;	mDebugByte BRICK_SCREEN_DIRECTION+6,        26 ; H6
+
+;	mDebugByte BRICK_SCREEN_DIRECTION+7,        28 ; H7
+
+
+;	mDebugByte BRICK_SCREEN_HSCROL_MOVE+0,        14 ; H0
+	
+;	mDebugByte BRICK_SCREEN_HSCROL_MOVE+1,        16 ; H1
+	
+;	mDebugByte BRICK_SCREEN_HSCROL_MOVE+2,        18 ; H2
+	
+;	mDebugByte BRICK_SCREEN_HSCROL_MOVE+3,        20 ; H3
+	
+;	mDebugByte BRICK_SCREEN_HSCROL_MOVE+4,        22 ; H4
+
+;	mDebugByte BRICK_SCREEN_HSCROL_MOVE+5,        24 ; H5
+	
+;	mDebugByte BRICK_SCREEN_HSCROL_MOVE+6,        26 ; H6
+
+;	mDebugByte BRICK_SCREEN_HSCROL_MOVE+7,        28 ; H7
+
+
+;	mDebugByte BRICK_SCREEN_MOVE_DELAY+0,        14 ; H0
+	
+;	mDebugByte BRICK_SCREEN_MOVE_DELAY+1,        16 ; H1
+	
+;	mDebugByte BRICK_SCREEN_MOVE_DELAY+2,        18 ; H2
+	
+;	mDebugByte BRICK_SCREEN_MOVE_DELAY+3,        20 ; H3
+	
+;	mDebugByte BRICK_SCREEN_MOVE_DELAY+4,        22 ; H4
+
+;	mDebugByte BRICK_SCREEN_MOVE_DELAY+5,        24 ; H5
+	
+;	mDebugByte BRICK_SCREEN_MOVE_DELAY+6,        26 ; H6
+
+;	mDebugByte BRICK_SCREEN_MOVE_DELAY+7,        28 ; H7
+
+
+	mDebugByte PARAM_87,        32 ; DE lay
+	
+	mDebugByte PARAM_88,        35 ; SP eed
+	
+	mDebugByte PARAM_89,        38 ; DI rection
 	
 
 ;===============================================================================
@@ -3718,7 +3830,7 @@ skip_29secTick
 ; ****   ****** **  **  *****
 ;===============================================================================
 
-;DIAG_TEMP1 = PARAM_89 ; = $d0 ; DIAG_TEMP1
+;DIAG_TEMP1 = PARAM_93 ; = $d0 ; DIAG_TEMP1
 
 ;---------------------------------------------------------------------
 ; Write hex value of a byte to the DIAG1 screen line.
