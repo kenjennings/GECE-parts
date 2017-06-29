@@ -77,5 +77,5 @@ This VSCROLL abuse provides a number of benefits:
 
 1) it uses less DMA time than five separate instructions with LMS to redisplay the same line.  However, that's not so important here, because there is a DLI running for 56 continuous scan lines to manage the VSCROLL hack and provide raster bar/gradient color to the bricks.
 2) There is only one line of graphics to manage for each row.  Manipulate one row of data, and all five scan lines show the change.
-3) There is only one instruction with LMS to modify to scroll the graphics.   When horizontal scrolling is added only one LMS address per row needs to be updated for the coarse scroll. (8 total)  Using separate LMS instruction to build 5 scan line bricks would look the same, but would require five LMS updates per row (40 total!) to accomplish horizontal coarse scrolling.
+3) There is only one LMS address to modify to scroll the graphics.   When horizontal scrolling is added to the graphics only one LMS address per row needs to be updated for the coarse scroll. (8 total)  Using separate LMS instructions to build bricks 5 scan lines tall would look the same, but require five LMS address updates per row (40 total!) to accomplish horizontal coarse scrolling.
 
