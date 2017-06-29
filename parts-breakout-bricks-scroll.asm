@@ -718,7 +718,7 @@ EMPTY_LINE ; 64 bytes of 0.
 ;===============================================================================
 
 DIAG0
-	.sbyte " JF SS SI VM H0 H1 H2 H3 H4 H5 H6 H7    "
+	.sbyte " JF SS SI VM  H0 1 2 3 4 5 6 7  DE SP DI"
 
 DIAG1
 	.dc 40 $00
@@ -1461,6 +1461,14 @@ BRICK_CURRENT_COLOR ; Base color for brick gradients
 	.ds 8 ; 8 bytes, one for each row.       
 
 TABLE_COLOR_TITLE ; Colors for title screen.  R a i n b o w
+	.byte COLOR_LITE_BLUE+2
+		.byte COLOR_LITE_BLUE+2
+			.byte COLOR_LITE_BLUE+2
+				.byte COLOR_LITE_BLUE+2
+					.byte COLOR_LITE_BLUE+2
+						.byte COLOR_LITE_BLUE+2
+							.byte COLOR_LITE_BLUE+2
+								.byte COLOR_LITE_BLUE+2
 	.byte COLOR_ORANGE1+2
 	.byte COLOR_RED_ORANGE+2
 	.byte COLOR_PURPLE+2
@@ -1511,7 +1519,7 @@ BRICK_SCREEN_TARGET_HSCROL
 ; -1=view Left/graphics right, +1=view Right/graphics left
 ;
 BRICK_SCREEN_DIRECTION 
-	.byte 1,$FF,1,$FF,1,$FF,1,$FF
+	.byte 0,0,0,0,0,0,0,0
 ;
 ; Table of patterns-in-a-can for direction....
 ;
@@ -1531,7 +1539,7 @@ TABLE_CANNED_BRICK_DIRECTIONS ; random(8) * 8
 ; the ball returns to collide with the bricks.
 ;
 BRICK_SCREEN_HSCROL_MOVE 
-	.byte 1,1,2,2,3,3,4,4
+	.byte 4,4,4,4,4,4,4,4
 ;
 ; Table of patterns-in-a-can for scroll speed....
 ;
@@ -1547,7 +1555,7 @@ TABLE_CANNED_BRICK_SPEED ; random(4) * 8
 ; collide with the bricks.
 ;
 BRICK_SCREEN_MOVE_DELAY 
-	.byte 7,6,5,4,3,2,1,0
+	.byte 0,0,0,0,0,0,0,0
 ;
 ; Table of patterns-in-a-can for delaying start of scroll.
 ; Note that a custom delay is chosen ONLY when the scroll
@@ -2210,13 +2218,17 @@ Set_Brick_In_Motion
 ; DELAY OR SCROLL   
 ; ***************
 	
-	ldx #7 ; start at last/bottom row.
+	ldy #7 ; start at last/bottom row.
 
 Check_Pause_or_Movement
+	tya                           ; Transfer Y to X, because this 
+    tax                           ; needs to use DEC MEMORY,X
+
 	lda BRICK_SCREEN_MOVE_DELAY,y ; Delay for frame count?
 	beq Move_Brick_Row            ; No.  Is there fine scroll?
-	inc BRICK_SCREEN_IN_MOTION    ; pause still means things in progress
-	dec BRICK_SCREEN_MOVE_DELAY,y
+
+	inc BRICK_SCREEN_IN_MOTION    ; "Pause" still means things are in progress.	
+	dec BRICK_SCREEN_MOVE_DELAY,x ; Decrement timer frame counter.
 	jmp Do_Next_Brick_Row
 	
 Move_Brick_Row
@@ -2298,7 +2310,7 @@ Update_HScrol
 ; ***************
 
 Do_Next_Brick_Row
-	dex
+	dey
 	bmi End_Brick_Scroll_Update
 ;	bpl Check_Pause_or_Movement ; Do_Row_Movement
 	jmp Check_Pause_or_Movement
@@ -3033,7 +3045,7 @@ MainSetCenterTargetScroll
 	ldx #0  ; Brick Row. 0 to 7. (otherwise the TABLES need to be flipped in reverse)
 
 ?InitRowPositions
-	stx PARAM_86 ; Row           ; Need to reload X later
+	stx PARAM_86 ; Row               ; Need to reload X later
 	
 	lda #20                          ; The center screen LMS low byte
 	sta BRICK_SCREEN_TARGET_LMS,x    ; Set for the row.
@@ -3053,7 +3065,7 @@ MainSetCenterTargetScroll
 	lda BRICK_LMS_OFFSETS,x      ; Get LMS low byte offset per the row.
 	tax
 	lda BRICK_SCREEN_LMS,y       ; Get Starting LMS position per scroll direction.
-	sta DL_BRICK_BASE,x             ; Set low byte of LMS to move row
+	sta DL_BRICK_BASE,x          ; Set low byte of LMS to move row
 	
 	ldx PARAM_86 ; Row           ; Get the row number back.
 
@@ -3075,8 +3087,7 @@ MainSetCenterTargetScroll
 	inc PARAM_88 ; Speed index
 	inc PARAM_87 ; Delay index
     
-	clc
-	bcc ?InitRowPositions         ; Loop again.
+	jmp ?InitRowPositions         ; Loop again.
 
 End_SetCenterTargetSCroll
 
@@ -3468,53 +3479,6 @@ FOREVER
 
 
 
-
-;===============================================================================
-; ****   ******   **    *****
-; ** **    **    ****  **  
-; **  **   **   **  ** **
-; **  **   **   **  ** ** ***
-; ** **    **   ****** **  **
-; ****   ****** **  **  *****
-;===============================================================================
-
-; Write selected byte values to diagnostic line on screen.
-; NOTE: Moved to inside WaitFrame to insure this is done as 
-; soon as the frame starts.
-
-;	.sbyte " JF SS SI VM H0 H1 H2 H3 H4 H5 H6 H7    "
-	
-;	mDebugByte RTCLOK60,                         1 ; JF
-	
-;	mDebugByte BRICK_SCREEN_START_SCROLL,        4 ; SS
-
-;	mDebugByte BRICK_SCREEN_IMMEDIATE_POSITION,  7 ; SI
-	
-;	mDebugByte BRICK_SCREEN_IN_MOTION,          10 ; VM
-
-;	mDebugByte [BRICK_CURRENT_HSCROL+0],        13 ; H0
-	
-;	mDebugByte [BRICK_CURRENT_HSCROL+1],        16 ; H1
-	
-;	mDebugByte [BRICK_CURRENT_HSCROL+2],        19 ; H2
-	
-;	mDebugByte [BRICK_CURRENT_HSCROL+3],        22 ; H3
-	
-;	mDebugByte [BRICK_CURRENT_HSCROL+4],        25 ; H4
-	
-;	mDebugByte [BRICK_CURRENT_HSCROL+5],        28 ; H5
-	
-;	mDebugByte [BRICK_CURRENT_HSCROL+6],        31 ; H6
-	
-;	mDebugByte [BRICK_CURRENT_HSCROL+7],        34 ; H7
-	
-;	mDebugByte TITLE_COLOR_COUNTER,       37 ; CC
-
-;	mDebugByte TITLE_DLI_PMCOLOR,         34 ; DP
-;===============================================================================	
-;	mDebugByte TITLE_SLOW_ME_CLOCK,       37 ; SM
-;===============================================================================
-
 	jmp FOREVER ; And again.  (and again) 
 
 
@@ -3697,7 +3661,7 @@ skip_29secTick
 
 ; Write selected byte values to diagnostic line on screen.
 
-;	.sbyte " JF SS SI VM H0 H1 H2 H3 H4 H5 H6 H7    "
+;	.sbyte " JF SS SI VM H0 H1 H2 H3 H4    DE SP DI "
 	
 	mDebugByte RTCLOK60,                         1 ; JF
 	
@@ -3707,27 +3671,31 @@ skip_29secTick
 	
 	mDebugByte BRICK_SCREEN_IN_MOTION,          10 ; VM
 
-	mDebugByte [BRICK_CURRENT_HSCROL+0],        13 ; H0
-	
-	mDebugByte [BRICK_CURRENT_HSCROL+1],        16 ; H1
-	
-	mDebugByte [BRICK_CURRENT_HSCROL+2],        19 ; H2
-	
-	mDebugByte [BRICK_CURRENT_HSCROL+3],        22 ; H3
-	
-	mDebugByte [BRICK_CURRENT_HSCROL+4],        25 ; H4
-	
-	mDebugByte [BRICK_CURRENT_HSCROL+5],        28 ; H5
-	
-	mDebugByte [BRICK_CURRENT_HSCROL+6],        31 ; H6
-	
-	mDebugByte [BRICK_CURRENT_HSCROL+7],        34 ; H7
-	
-;	mDebugByte TITLE_COLOR_COUNTER,       37 ; CC
 
-;	mDebugByte TITLE_DLI_PMCOLOR,         34 ; DP
-;===============================================================================	
-;	mDebugByte TITLE_SLOW_ME_CLOCK,       37 ; SM
+	mDebugByte BRICK_CURRENT_HSCROL+0,        14 ; H0
+	
+	mDebugByte BRICK_CURRENT_HSCROL+1,        16 ; H1
+	
+	mDebugByte BRICK_CURRENT_HSCROL+2,        18 ; H2
+	
+	mDebugByte BRICK_CURRENT_HSCROL+3,        20 ; H3
+	
+	mDebugByte BRICK_CURRENT_HSCROL+4,        22 ; H4
+
+	mDebugByte BRICK_CURRENT_HSCROL+5,        24 ; H5
+	
+	mDebugByte BRICK_CURRENT_HSCROL+6,        26 ; H6
+
+	mDebugByte BRICK_CURRENT_HSCROL+7,        28 ; H7
+
+	
+	mDebugByte PARAM_87,        32 ; DE
+	
+	mDebugByte PARAM_88,        35 ; SP
+	
+	mDebugByte PARAM_89,        38 ; DI
+	
+
 ;===============================================================================
 
 
