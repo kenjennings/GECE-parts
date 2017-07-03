@@ -1444,11 +1444,57 @@ BRICK_SCREEN_LMS
 BRICK_SCREEN_HSCROL 
 	.byte 8,0,0
 ;
+; Same thing from the opposite movement perspective...
+;
+BRICK_SCREEN_REVERSE_LMS  
+	.byte 41,20,0
+;
+BRICK_SCREEN_REVERSE_HSCROL 
+	.byte 0,0,8
+;
 ; DISPLAY LIST: offset from DL_BRICK_BASE to the low byte of LMS addresses:
 ; DL_BRICK_BASE+1, +5, +9, +13, +17, +21, +25, +29 is low byte of row.
 ;
 BRICK_LMS_OFFSETS 
 	.byte 1,5,9,13,17,21,25,29
+;
+; DERP! Several days of debug-o-rama determined the plainly obvious fact that 
+; offsets are not addresses.   Targets screen LMS locations must be specific 
+; addreses, therefore there is a different value for each row for each screen.
+;
+; (However, by aligning all the screen memory rows to 64 byte increments 
+; beginning at a page, the high byte for any given row is always the the same 
+; for that specific row, so the high byte is not needed for these tables.
+;
+BRICK_SCREEN_LEFT_LMS_TARGET
+    .byte <BRICK_LINE0
+    .byte <BRICK_LINE1
+    .byte <BRICK_LINE2
+    .byte <BRICK_LINE3
+    .byte <BRICK_LINE4
+    .byte <BRICK_LINE5
+    .byte <BRICK_LINE6
+    .byte <BRICK_LINE7
+;
+BRICK_SCREEN_CENTER_LMS_TARGET
+    .byte <[BRICK_LINE0+20]
+    .byte <[BRICK_LINE1+20]
+    .byte <[BRICK_LINE2+20]
+    .byte <[BRICK_LINE3+20]
+    .byte <[BRICK_LINE4+20]
+    .byte <[BRICK_LINE5+20]
+    .byte <[BRICK_LINE6+20]
+    .byte <[BRICK_LINE7+20]
+;
+BRICK_SCREEN_RIGHT_LMS_TARGET
+    .byte <[BRICK_LINE0+41]
+    .byte <[BRICK_LINE1+41]
+    .byte <[BRICK_LINE2+41]
+    .byte <[BRICK_LINE3+41]
+    .byte <[BRICK_LINE4+41]
+    .byte <[BRICK_LINE5+41]
+    .byte <[BRICK_LINE6+41]
+    .byte <[BRICK_LINE7+41]
 ;
 ; MAIN code sets the TARGET configuration of each line of 
 ; the playfield.  
@@ -3054,7 +3100,7 @@ MainSetCenterTargetScroll
 ?InitRowPositions
 	stx PARAM_86 ; Row               ; Need to reload X later
 	
-	lda #20                          ; The center screen LMS low byte
+	lda BRICK_SCREEN_CENTER_LMS_TARGET,x ; The center screen LMS low byte
 	sta BRICK_SCREEN_TARGET_LMS,x    ; Set for the row.
 	
 	lda #0                           ; The center screen fine scroll position.
@@ -3066,14 +3112,33 @@ MainSetCenterTargetScroll
 	
 	iny                          ; Now direction is adjusted to 0, 2
 
-	lda BRICK_SCREEN_HSCROL,y    ; Get starting hscroll position per scroll direction.
+; "Reverse" because we're moving from Left or Right screens to the Center.
+
+	lda BRICK_SCREEN_REVERSE_HSCROL,y ; Get starting hscroll position per scroll direction.
 	sta BRICK_CURRENT_HSCROL,x   ; Set for the current row.
+
+; Get Starting LMS position per scroll direction.
+
+	cpy #0 ; 
+	bne ?Do_Moving_Screen_Right
 	
-	lda BRICK_LMS_OFFSETS,x      ; Get LMS low byte offset per the row.
+	lda BRICK_SCREEN_RIGHT_LMS_TARGET,x ; Left means starting from Right Screen 
+	jmp ?Pepare_For_LMS_Update
+	
+?Do_Moving_Screen_Right
+    lda BRICK_SCREEN_LEFT_LMS_TARGET,x ; Right means starting from Left Screen 
+      
+?Prepare_For_LMS_Update
+    pha  ; Need to save A which holds the new LMS until X is correct offset into display list
+   
+    lda BRICK_LMS_OFFSETS,x      ; Get Display List LMS low byte offset per the row.
 	tax
-	lda BRICK_SCREEN_LMS,y       ; Get Starting LMS position per scroll direction.
-	sta DL_BRICK_BASE,x          ; Set low byte of LMS to move row
 	
+	pla ; Get new LMS value back.  And store into display list.
+	
+?Update_DL_LMS
+	sta DL_BRICK_BASE,x          ; Set low byte of LMS to move row
+
 	ldx PARAM_86 ; Row           ; Get the row number back.
 
 	ldy PARAM_88 ; Speed
@@ -3156,6 +3221,48 @@ MainSetClearTargetScroll
 	sta BRICK_SCREEN_TARGET_HSCROL,x ; Set for the destination row.
 	
 	lda BRICK_SCREEN_LMS,y           ; Get Starting LMS position per scroll direction.
+	
+	
+	
+	
+	
+	
+	
+	
+	
+; "Reverse" because we're moving from Left or Right screens to the Center.
+
+	lda BRICK_SCREEN_REVERSE_HSCROL,y ; Get starting hscroll position per scroll direction.
+	sta BRICK_CURRENT_HSCROL,x   ; Set for the current row.
+
+; Get Starting LMS position per scroll direction.
+
+	cpy #0 ; 
+	bne ?Do_Moving_Screen_Right
+	
+	lda BRICK_SCREEN_RIGHT_LMS_TARGET,x ; Left means starting from Right Screen 
+	jmp ?Pepare_For_LMS_Update
+	
+?Do_Moving_Screen_Right
+    lda BRICK_SCREEN_LEFT_LMS_TARGET,x ; Right means starting from Left Screen 
+      
+?Prepare_For_LMS_Update
+    pha  ; Need to save A which holds the new LMS until X is correct offset into display list
+   
+    lda BRICK_LMS_OFFSETS,x      ; Get Display List LMS low byte offset per the row.
+	tax
+	
+	pla ; Get new LMS value back.  And store into display list.
+	
+?Update_DL_LMS
+	sta DL_BRICK_BASE,x          ; Set low byte of LMS to move row
+	
+	
+	
+	
+	
+	
+	
 	sta BRICK_SCREEN_TARGET_LMS,x    ; Set low byte of LMS to move row
 	
 	ldy PARAM_88                     ; Y = Speed index
