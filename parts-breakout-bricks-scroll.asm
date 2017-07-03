@@ -1423,13 +1423,15 @@ DL_BRICK_BASE
 ; byte that follows. 
 ;
 ; Therefore, the memory map for the display lines looks like this: 
-; ignore byte 0|20 bytes|1 byte|20 bytes|1 byte|20 bytes == 63 bytes.
+; ignore byte 0,1|20 bytes|1 byte|20 bytes|1 byte|20 bytes == 63 bytes.
+;             0,1|2.....21|.22...|23....42|.43...|44....63
 ;
-; Thus the origination position for each of the three screens relative to the 
-; base address of each line:
-; Left Screen:   Memory Scan +0,  HSCROL = 8
-; Center Screen: Memory Scan +20, HSCROL = 0 (or Memory Scan +21, HSCROL = 8)
-; Right Screen:  Memory Scan +41, HSCROL = 0 (or Memory Scan +42, HSCROL = 8)
+; The LMS buffers the first two bytes, so the LMS origination position 
+; for each of the three screens relative to the base of each line:
+;
+; Left Screen:   Memory Scan +0,  HSCROL = 0 (or Memory Scan +1,  HSCROL = 8)
+; Center Screen: Memory Scan +21, HSCROL = 0 (or Memory Scan +22, HSCROL = 8)
+; Right Screen:  Memory Scan +42, HSCROL = 0 (or Memory Scan +43, HSCROL = 8)
 ;
 ; Reference lookup for Display List LMS offset for screen postition:
 ; 0 = left
@@ -1437,20 +1439,20 @@ DL_BRICK_BASE
 ; 2 = right
 ;
 BRICK_SCREEN_LMS  
-	.byte 0,20,41
+	.byte 0,21,42
 ;
 ; and reference HSCROL value to align the correct bytes...
 ;
 BRICK_SCREEN_HSCROL 
-	.byte 8,0,0
+	.byte 0,0,0
 ;
 ; Same thing from the opposite movement perspective...
 ;
 BRICK_SCREEN_REVERSE_LMS  
-	.byte 41,20,0
+	.byte 42,21,0
 ;
 BRICK_SCREEN_REVERSE_HSCROL 
-	.byte 0,0,8
+	.byte 0,0,0
 ;
 ; DISPLAY LIST: offset from DL_BRICK_BASE to the low byte of LMS addresses:
 ; DL_BRICK_BASE+1, +5, +9, +13, +17, +21, +25, +29 is low byte of row.
@@ -1477,24 +1479,24 @@ BRICK_SCREEN_LEFT_LMS_TARGET
     .byte <BRICK_LINE7
 ;
 BRICK_SCREEN_CENTER_LMS_TARGET
-    .byte <[BRICK_LINE0+20]
-    .byte <[BRICK_LINE1+20]
-    .byte <[BRICK_LINE2+20]
-    .byte <[BRICK_LINE3+20]
-    .byte <[BRICK_LINE4+20]
-    .byte <[BRICK_LINE5+20]
-    .byte <[BRICK_LINE6+20]
-    .byte <[BRICK_LINE7+20]
+    .byte <[BRICK_LINE0+21]
+    .byte <[BRICK_LINE1+21]
+    .byte <[BRICK_LINE2+21]
+    .byte <[BRICK_LINE3+21]
+    .byte <[BRICK_LINE4+21]
+    .byte <[BRICK_LINE5+21]
+    .byte <[BRICK_LINE6+21]
+    .byte <[BRICK_LINE7+21]
 ;
 BRICK_SCREEN_RIGHT_LMS_TARGET
-    .byte <[BRICK_LINE0+41]
-    .byte <[BRICK_LINE1+41]
-    .byte <[BRICK_LINE2+41]
-    .byte <[BRICK_LINE3+41]
-    .byte <[BRICK_LINE4+41]
-    .byte <[BRICK_LINE5+41]
-    .byte <[BRICK_LINE6+41]
-    .byte <[BRICK_LINE7+41]
+    .byte <[BRICK_LINE0+42]
+    .byte <[BRICK_LINE1+42]
+    .byte <[BRICK_LINE2+42]
+    .byte <[BRICK_LINE3+42]
+    .byte <[BRICK_LINE4+42]
+    .byte <[BRICK_LINE5+42]
+    .byte <[BRICK_LINE6+42]
+    .byte <[BRICK_LINE7+42]
 ;
 ; MAIN code sets the TARGET configuration of each line of 
 ; the playfield.  
@@ -1519,7 +1521,7 @@ BRICK_SCREEN_TARGET_HSCROL
 ; See BRICK_LMS_OFFSETS for actual locations of LMS.
 ;
 BRICK_SCREEN_TARGET_LMS 
-	.byte 20,20,20,20,20,20,20,20
+	.byte 21,21,21,21,21,21,21,21
 ;
 ; Increment or decrement the movement direction? 
 ; -1=view Left/graphics right, +1=view Right/graphics left
@@ -2860,14 +2862,14 @@ MainClearCenterScreen
 	lda #0
 	
 ?LoopZeroBitmapToScreen	
-	sta BRICK_LINE0+21,x
-	sta BRICK_LINE1+21,x
-	sta BRICK_LINE2+21,x
-	sta BRICK_LINE3+21,x
-	sta BRICK_LINE4+21,x
-	sta BRICK_LINE5+21,x
-	sta BRICK_LINE6+21,x
-	sta BRICK_LINE7+21,x
+	sta BRICK_LINE0+23,x
+	sta BRICK_LINE1+23,x
+	sta BRICK_LINE2+23,x
+	sta BRICK_LINE3+23,x
+	sta BRICK_LINE4+23,x
+	sta BRICK_LINE5+23,x
+	sta BRICK_LINE6+23,x
+	sta BRICK_LINE7+23,x
 	
 	dex
 	bpl ?LoopZeroBitmapToScreen
@@ -2905,28 +2907,28 @@ MainCopyGameOver
 	
 ?LoopCopyBitmapToScreen	
 	lda GAMEOVER_LINE0,X
-	sta BRICK_LINE0+21,x
+	sta BRICK_LINE0+23,x
 
 	lda GAMEOVER_LINE1,X
-	sta BRICK_LINE1+21,x
+	sta BRICK_LINE1+23,x
 
 	lda GAMEOVER_LINE2,X
-	sta BRICK_LINE2+21,x
+	sta BRICK_LINE2+23,x
 
 	lda GAMEOVER_LINE3,X
-	sta BRICK_LINE3+21,x
+	sta BRICK_LINE3+23,x
 
 	lda GAMEOVER_LINE4,X
-	sta BRICK_LINE4+21,x
+	sta BRICK_LINE4+23,x
 
 	lda GAMEOVER_LINE5,X
-	sta BRICK_LINE5+21,x
+	sta BRICK_LINE5+23,x
 
 	lda GAMEOVER_LINE6,X
-	sta BRICK_LINE6+21,x
+	sta BRICK_LINE6+23,x
 
 	lda GAMEOVER_LINE7,X
-	sta BRICK_LINE7+21,x
+	sta BRICK_LINE7+23,x
 	
 	dex
 	bpl ?LoopCopyBitmapToScreen
@@ -2964,28 +2966,28 @@ MainCopyLogo
 	
 ?LoopCopyBitmapToScreen	
 	lda LOGO_LINE0,X
-	sta BRICK_LINE0+21,x
+	sta BRICK_LINE0+23,x
 
 	lda LOGO_LINE1,X
-	sta BRICK_LINE1+21,x
+	sta BRICK_LINE1+23,x
 
 	lda LOGO_LINE2,X
-	sta BRICK_LINE2+21,x
+	sta BRICK_LINE2+23,x
 
 	lda LOGO_LINE3,X
-	sta BRICK_LINE3+21,x
+	sta BRICK_LINE3+23,x
 
 	lda LOGO_LINE4,X
-	sta BRICK_LINE4+21,x
+	sta BRICK_LINE4+23,x
 
 	lda LOGO_LINE5,X
-	sta BRICK_LINE5+21,x
+	sta BRICK_LINE5+23,x
 
 	lda LOGO_LINE6,X
-	sta BRICK_LINE6+21,x
+	sta BRICK_LINE6+23,x
 
 	lda LOGO_LINE7,X
-	sta BRICK_LINE7+21,x
+	sta BRICK_LINE7+23,x
 	
 	dex
 	bpl ?LoopCopyBitmapToScreen
@@ -3022,16 +3024,16 @@ MainCopyBricks
 	ldx #19
 	
 ?LoopCopyBitmapToScreen	
-	lda BRICK_LINE_MASTER,X
+	lda BRICK_LINE_MASTER,x
 	
-	sta BRICK_LINE0+21,x
-	sta BRICK_LINE1+21,x
-	sta BRICK_LINE2+21,x
-	sta BRICK_LINE3+21,x
-	sta BRICK_LINE4+21,x
-	sta BRICK_LINE5+21,x
-	sta BRICK_LINE6+21,x
-	sta BRICK_LINE7+21,x
+	sta BRICK_LINE0+23,x
+	sta BRICK_LINE1+23,x
+	sta BRICK_LINE2+23,x
+	sta BRICK_LINE3+23,x
+	sta BRICK_LINE4+23,x
+	sta BRICK_LINE5+23,x
+	sta BRICK_LINE6+23,x
+	sta BRICK_LINE7+23,x
 	
 	dex
 	bpl ?LoopCopyBitmapToScreen
@@ -3123,7 +3125,7 @@ MainSetCenterTargetScroll
 	bne ?Do_Moving_Screen_Right
 	
 	lda BRICK_SCREEN_RIGHT_LMS_TARGET,x ; Left means starting from Right Screen 
-	jmp ?Pepare_For_LMS_Update
+	jmp ?Prepare_For_LMS_Update
 	
 ?Do_Moving_Screen_Right
     lda BRICK_SCREEN_LEFT_LMS_TARGET,x ; Right means starting from Left Screen 
@@ -3241,7 +3243,7 @@ MainSetClearTargetScroll
 	bne ?Do_Moving_Screen_Right
 	
 	lda BRICK_SCREEN_RIGHT_LMS_TARGET,x ; Left means starting from Right Screen 
-	jmp ?Pepare_For_LMS_Update
+	jmp ?Prepare_For_LMS_Update
 	
 ?Do_Moving_Screen_Right
     lda BRICK_SCREEN_LEFT_LMS_TARGET,x ; Right means starting from Left Screen 
