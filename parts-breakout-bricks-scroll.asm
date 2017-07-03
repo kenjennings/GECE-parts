@@ -171,21 +171,29 @@ PADDLE_MAX = (PLAYFIELD_RIGHT_EDGE_NORMAL-PLAYFIELD_LEFT_EDGE_NORMAL-11)
 ; locations.  Since no Floating Point will be used here we'll 
 ; borrow the FP registers in Page Zero.
 
+; This list is a disorganized, royal mess.  Next time don't start 
+; with the page zero list allowed for BASIC.  Just start at $80 and 
+; run straight until $FF.
+;
 PARAM_00 = $D4 ; ZMR_ROBOTO  -- Is Mr Roboto playing the automatic demo mode? init 1/yes
 PARAM_01 = $D6 ; ZDIR_X      -- +1 Right, -1 Left.  Indicates direction of travel.
 PARAM_02 = $D7 ; ZDIR_Y      -- +1 Down, -1 Up.  Indicates direction of travel.
-PARAM_03 = $D8 ; ZCOLLISION  -- Is Brick present at tested location? 0 = no, 1 = yes
-PARAM_04 = $D9 ; ZBRICK_LINE -- coord_Y reduced to line 1-8
-PARAM_05 = $DA ; ZBRICK_COL  -- coord_X reduced to brick number 1-14
-PARAM_06 = $DB ; ZCOORD_Y    -- coord_Y for collision check
-PARAM_07 = $DC ; ZCOORD_X    -- coord_X for collision check  
-PARAM_08 = $DD ;   
+
+; Due to need for more sequential pointers these values 
+; are  moved elsewhere...
+;
+; PARAM_03 = $D8 ; ZCOLLISION  -- Is Brick present at tested location? 0 = no, 1 = yes
+; PARAM_04 = $D9 ; ZBRICK_LINE -- coord_Y reduced to line 1-8
+; PARAM_05 = $DA ; ZBRICK_COL  -- coord_X reduced to brick number 1-14
+; PARAM_06 = $DB ; ZCOORD_Y    -- coord_Y for collision check
+; PARAM_07 = $DC ; ZCOORD_X    -- coord_X for collision check  
+; PARAM_08 = $DD ;   
 ;
 ; And more Zero Page fun.  This is assembly, dude.  No BASIC in sight anywhere.
 ; No BASIC means we can get craaaazy with the second half of Page Zero.
 ;
 ; In fact, there's no need to have the regular game variables out in high memory.  
-; For starters, all the Byte-sized values are hereby moved to Page 0.
+; All the Byte-sized values are hereby moved to Page 0.
 ;
 PARAM_09 = $80 ; TITLE_STOP_GO - set by mainline to indicate title is working or not.
 
@@ -272,25 +280,33 @@ PARAM_80 = $c7 ; TITLE_SLOW_ME_CLOCK - frame clock to slow title stages.
 ;===============================================================================
 PARAM_81 = $c8 ; TITLE_COLOR_COUNTER_CLOCK - frame clock to slow color gradient
 PARAM_82 = $c9 ; ENABLE_THUMPER - should have thought of this earlier.
-PARAM_83 = $ca ;    
-PARAM_84 = $cb ; 
-PARAM_85 = $cc ;    
-PARAM_86 = $cd ; 
-PARAM_87 = $ce ; 
+
+PARAM_83 = $ca ; ZCOLLISION  -- Is Brick present at tested location? 0 = no, 1 = yes
+PARAM_84 = $cb ; ZBRICK_LINE -- coord_Y reduced to line 1-8
+PARAM_85 = $cc ; ZBRICK_COL  -- coord_X reduced to brick number 1-14
+PARAM_86 = $cd ; ZCOORD_Y    -- coord_Y for collision check
+PARAM_87 = $ce ; ZCOORD_X    -- coord_X for collision check 
 PARAM_88 = $cf ; 
-PARAM_89 = $d0 ; 
+PARAM_89 = $d0 ;    
 PARAM_90 = $d1 ; DIAG_BRICK_Y - remember Y for looping brick destruction 
 PARAM_91 = $d2 ; DIAG_BRICK_X - remember X for looping brick destruction
 PARAM_92 = $d3 ; DIAG_SLOW_ME_CLOCK
 PARAM_93 = $d5 ; DIAG_TEMP1
 
-ZEROPAGE_POINTER_1 = $DE ; 
-ZEROPAGE_POINTER_2 = $E0 ; 
-ZEROPAGE_POINTER_3 = $E2 ; 
-ZEROPAGE_POINTER_4 = $E4 ; 
-ZEROPAGE_POINTER_5 = $E6 ; 
-ZEROPAGE_POINTER_6 = $E8 ; 
-ZEROPAGE_POINTER_7 = $EA ; 
+PARAM_94 = $D8 ; MAIN: Direction Index
+PARAM_95 = $D9 ; MAIN: Speed Index
+PARAM_96 = $DA ; MAIN: Delay Index
+PARAM_97 = $DB ; MAIN: Temporary SAVE/PHA
+
+
+ZEROPAGE_POINTER_0 = $DC ; ZROW_LMS0     -- Pointer to display list LMS brick row 0
+ZEROPAGE_POINTER_1 = $DE ; ZROW_LMS1     -- Pointer to display list LMS brick row 1
+ZEROPAGE_POINTER_2 = $E0 ; ZROW_LMS2     -- Pointer to display list LMS brick row 2
+ZEROPAGE_POINTER_3 = $E2 ; ZROW_LMS3     -- Pointer to display list LMS brick row 3
+ZEROPAGE_POINTER_4 = $E4 ; ZROW_LMS4     -- Pointer to display list LMS brick row 4
+ZEROPAGE_POINTER_5 = $E6 ; ZROW_LMS5     -- Pointer to display list LMS brick row 5
+ZEROPAGE_POINTER_6 = $E8 ; ZROW_LMS6     -- Pointer to display list LMS brick row 6
+ZEROPAGE_POINTER_7 = $EA ; ZROW_LMS7     -- Pointer to display list LMS brick row 7
 ZEROPAGE_POINTER_8 = $EC ; ZBRICK_BASE   -- Pointer to start of bricks on a line.
 ZEROPAGE_POINTER_9 = $EE ; ZTITLE_COLPM0 -- VBI sets for DLI to use
 
@@ -306,15 +322,16 @@ ZDIR_X =      PARAM_01 ; +1 Right, -1 Left.  Indicates direction of travel.
  
 ZDIR_Y =      PARAM_02 ; +1 Down, -1 Up.  Indicates direction of travel.
 
-ZCOLLISION =  PARAM_03 ; Is Brick present at tested location? 0 = no, 1 = yes
 
-ZBRICK_LINE = PARAM_04 ; Ycoord reduced to line 1-8
+ZCOLLISION =  PARAM_83 ; Is Brick present at tested location? 0 = no, 1 = yes
 
-ZBRICK_COL =  PARAM_05 ; Xcoord reduced to brick number 1-14
+ZBRICK_LINE = PARAM_84 ; Ycoord reduced to line 1-8
 
-ZCOORD_Y =    PARAM_06 ; Ycoord for collision check
+ZBRICK_COL =  PARAM_85 ; Xcoord reduced to brick number 1-14
 
-ZCOORD_XP =   PARAM_07 ; Xcoord for collision check  
+ZCOORD_Y =    PARAM_86 ; Ycoord for collision check
+
+ZCOORD_XP =   PARAM_87 ; Xcoord for collision check  
 
 
 ; flag when timer counted (29 sec). Used on the
@@ -336,6 +353,13 @@ ZTITLE_COLPM0 = ZEROPAGE_POINTER_9 ; $EE - VBI sets for DLI to use
 
 
 
+
+M_DIRECTION_INDEX = PARAM_94 ; MAIN: Direction Index
+M_SPEED_INDEX =     PARAM_95 = $D9 ; MAIN: Speed Index
+M_DELAY_INDEX =     PARAM_96 = $DA ; MAIN: Delay Index
+M_TEMP_PHA =        PARAM_97 = $DB ; MAIN: Temporary SAVE/PHA
+
+
 ;===============================================================================
 ; ****    ******   ****   *****   **        **    **  **   ****
 ; ** **     **    **      **  **  **       ****   **  **  **  **
@@ -351,6 +375,14 @@ ZTITLE_COLPM0 = ZEROPAGE_POINTER_9 ; $EE - VBI sets for DLI to use
 
 ; DISPLAY values using Page 0 locations.
 
+ZROW_LMS0 = ZEROPAGE_POINTER_0 ; Pointer to display list LMS brick row 0
+ZROW_LMS1 = ZEROPAGE_POINTER_1 ; Pointer to display list LMS brick row 0
+ZROW_LMS2 = ZEROPAGE_POINTER_2 ; Pointer to display list LMS brick row 0
+ZROW_LMS3 = ZEROPAGE_POINTER_3 ; Pointer to display list LMS brick row 0
+ZROW_LMS4 = ZEROPAGE_POINTER_4 ; Pointer to display list LMS brick row 0
+ZROW_LMS5 = ZEROPAGE_POINTER_5 ; Pointer to display list LMS brick row 0
+ZROW_LMS6 = ZEROPAGE_POINTER_6 ; Pointer to display list LMS brick row 0
+ZROW_LMS7 = ZEROPAGE_POINTER_7 ; Pointer to display list LMS brick row 0
 
 ; ==============================================================
 ; BRICKS
@@ -1226,6 +1258,28 @@ DL_BRICK_BASE
 
 ; Non-aligned variables and data.
 
+TEMP = * ; Need to come back here.
+
+	*=ZROW_LMS0 ; Create table of the addresses of the LMS instructions
+
+	entry .= 1
+	.rept 8
+		.word [DL_BRICK_BASE+entry] ; DL_BRICK_BASE+1, +5, +9, +13, +17, +21, +25, +29
+		entry .= entry+4
+	.endr
+;		.word [DL_BRICK_BASE+5 ] ; Row 1 +5
+;		.word [DL_BRICK_BASE+9 ] ; Row 2 +9
+;		.word [DL_BRICK_BASE+13] ; Row 3 +13
+;		.word [DL_BRICK_BASE+17] ; Row 4 +17
+;		.word [DL_BRICK_BASE+21] ; Row 5 +21 
+;		.word [DL_BRICK_BASE+25] ; Row 6 +25
+;		.word [DL_BRICK_BASE+29] ; Row 7 +29
+
+	*=TEMP
+
+
+	
+
 ; Game Modes.  
 ; Different sections of the screen are operating at different times.
 ; 0 = Main title screen.
@@ -1587,14 +1641,6 @@ BRICK_CURRENT_COLOR ; Base color for brick gradients
 	.ds 8 ; 8 bytes, one for each row.       
 
 TABLE_COLOR_TITLE ; Colors for title screen.  R a i n b o w
-	.byte COLOR_LITE_BLUE+2
-		.byte COLOR_LITE_BLUE+2
-			.byte COLOR_LITE_BLUE+2
-				.byte COLOR_LITE_BLUE+2
-					.byte COLOR_LITE_BLUE+2
-						.byte COLOR_LITE_BLUE+2
-							.byte COLOR_LITE_BLUE+2
-								.byte COLOR_LITE_BLUE+2
 	.byte COLOR_ORANGE1+2
 	.byte COLOR_RED_ORANGE+2
 	.byte COLOR_PURPLE+2
@@ -2206,8 +2252,8 @@ End_Thumper_Bumper_VBI
 ; (and using 0-15 would make this even more weird.)
 ; 
 ; Reminders: 
-; Move view right/screen contents Left = Decrement HSCROL, Increment LMS
-; Move view left/screen contents Right = Increment HSCROL, Decrement LMS.
+; -1 == Move view left/screen bricks Right = Increment HSCROL, Decrement LMS.
+; +1 == Move view right/screen bricks Left = Decrement HSCROL, Increment LMS
 ;
 ; Two different screen moves here.  
 ;
@@ -2287,77 +2333,107 @@ Check_Pause_or_Movement
 	jmp Do_Next_Brick_Row
 	
 Move_Brick_Row
-	ldx BRICK_LMS_OFFSETS,y ; X = current position of LMS low byte in Display List
-	lda DL_BRICK_BASE,x             ; What is the Display List LMS pointer now?
+	ldx BRICK_LMS_OFFSETS,y         ; X = current position of LMS low byte in Display List
+
+	lda DL_BRICK_BASE,x             ; What is the Display List LMS pointer now?	
 	cmp BRICK_SCREEN_TARGET_LMS,y   ; Does it match target?
+	
 	beq Finish_Brick_HScroll        ; Yes.  Then is more HScroll needed?
 
+; Reminders: 
+; -1 == Move view left/screen bricks Right = Increment HSCROL, Decrement LMS.
+; +1 == Move view right/screen bricks Left = Decrement HSCROL, Increment LMS.
+	
 	lda BRICK_SCREEN_DIRECTION,y 	; Are we going left or right?
-	bpl Do_Bricks_Right_Scroll		; -1 = view Right/graphics left, +1 = view left/graphics right
+	bmi Do_Bricks_Right_Scroll		; -1 = view left/graphics right, +1 = view Right/graphics left
 
-; scroll View Right/screen contents left 
+; Move View Right/screen bricks left 
 	lda BRICK_CURRENT_HSCROL,y      ; get the current Hscrol for this row.
-	sec
-	sbc BRICK_SCREEN_HSCROL_MOVE,y  ; decrement it to move graphics left.
+;	sec
+	clc
+	sbc BRICK_SCREEN_HSCROL_MOVE,y  ; decrement Hscrol to move graphics left.
 	bpl Update_HScrol       ; If not negative, then no coarse scroll.
 
 	clc                     ; Add to return this...
 	adc #8                  ; ... to positive. (using 8, not 16 color clocks)
 
-	inc DL_BRICK_BASE,x     ; Increment LMS to Coarse scroll it
+	inc DL_BRICK_BASE,x     ; Increment LMS to Coarse scroll graphics left
 	bne Update_HScrol       ; JMP - low byte Should always be non-zero.
-	
-Do_Bricks_Right_Scroll	    ; Move view left/screen contents Right
+
+; Reminders: 
+; -1 == Move view left/screen bricks Right = Increment HSCROL, Decrement LMS.
+; +1 == Move view right/screen bricks Left = Decrement HSCROL, Increment LMS
+
+; Move view left/screen bricks Right	
+Do_Bricks_Right_Scroll	    
 	lda BRICK_CURRENT_HSCROL,y      ; get the current Hscrol for this row.
 	clc
-	adc BRICK_SCREEN_HSCROL_MOVE,y  ; increment it to move graphics right.
-	cmp #8 ; if greater or equal to 8
+	adc BRICK_SCREEN_HSCROL_MOVE,y  ; increment Hscrol to move graphics right.
+	cmp #7 ; if 8 or greater 
 	bcc Update_HScrol       ; If no carry, then less than 8/limit.
 
-	sec                     
 	sbc #8                  ; Subtract 8 (using 8, not 16 color clocks)
 	
-	dec DL_BRICK_BASE,x     ; Decrement LMS to coarse scroll it.
-	; need special compensation to check for end position, because that 
-	; is at byte 0, hscrol 8, not hscrol 0-7
+	dec DL_BRICK_BASE,x     ; Decrement LMS to coarse scroll graphics right.
+	pha ; Save current HSCROL in case we need it.
+	
+	; As soon as decrement crosses into the target LMS, 
+	; then the HSCROL goes to and stays at 0.   
+	; Do not entertain re-evaluating (or re-incrementing).
+	
+	lda DL_BRICK_BASE,x
+	cmp BRICK_SCREEN_TARGET_LMS,y
+	beq ?End_Of_Right_Scroll 
+	
+	pla ; Get the HSCROL back.
+	jmp Update_HScrol ; still positive, so we did not pass byte 0, hscrol 8
 
-	bpl Update_HScrol ; still positive, so we did not pass byte 0, hscrol 8
-	lda #0            ; back it up to the end position...
-	sta DL_BRICK_BASE,x  ; byte 0
-	lda #8            ; hscrol 8
-	bpl Update_HScrol
-
+?End_Of_Right_Scroll
+	pla    ; Get it off stack to discard.
+	lda #0 ; force to 0.
+	beq Update_HScrol
+	
 ; The current LMS matches the target LMS. 
 ; a final Hscroll may be needed.
+
 Finish_Brick_HScroll 
 	lda BRICK_CURRENT_HSCROL,y
 	cmp BRICK_SCREEN_TARGET_HSCROL,y
 	beq Do_Next_Brick_Row ; Everything matches. nothing to do.
 
 	lda BRICK_SCREEN_DIRECTION,y    ; Are we going left or right?
-	bpl Do_Finish_Right_Scroll      ; -1 = view left/graphics right, +1 = view Right/graphics left
+; For all practical purpose  -1/view left/graphics right  
+; should not be possible. The only possible HSCROL value  
+; when LMS matches in this direction is 0.
+	bmi Do_Finish_Right_Scroll      ; -1 = view left/graphics right, +1 = view Right/graphics left
 	
 ; scroll View Left/screen contents right 
+; Reminders: 
+; -1 == Move view left/screen bricks Right = Increment HSCROL, Decrement LMS.
+; +1 == Move view right/screen bricks Left = Decrement HSCROL, Increment LMS
+
 	lda BRICK_CURRENT_HSCROL,y      ; get the current Hscrol for this row.
-	sec
+	sec ; Is this needed?  or clc?
 	sbc BRICK_SCREEN_HSCROL_MOVE,y  ; decrement it to move graphics left.
-	bmi Set_Left_Home               ; If it went negative reset to end position.
-	bpl Update_HScrol               ; If not negative, then no coarse scroll.
+	bpl Update_HScrol               ; If not negative, then no forced adjustment.
+
+;	bmi Set_Left_Home               ; If it went negative reset to end position.	
+; Technically, this should only be 0.
 Set_Left_Home
 	lda BRICK_SCREEN_TARGET_HSCROL,y ; if it went negative then reset to home
-	sta BRICK_CURRENT_HSCROL,y
 	jmp Update_HScrol
+
+; Reminders: 
+; -1 == Move view left/screen bricks Right = Increment HSCROL, Decrement LMS.
+; +1 == Move view right/screen bricks Left = Decrement HSCROL, Increment LMS
 	
 Do_Finish_Right_Scroll
-	lda BRICK_CURRENT_HSCROL,y       ; get the current Hscrol for this row.
-	clc
-	adc BRICK_SCREEN_HSCROL_MOVE,y   ; increment it to move line right.
-	cmp BRICK_SCREEN_TARGET_HSCROL,y ; if greater or equal to, then set to limit
-	bcc Update_HScrol                ; If no carry, then did not exceed limit.
-	lda BRICK_SCREEN_TARGET_HSCROL,y                     
+	lda BRICK_SCREEN_TARGET_HSCROL,y ; force to the ending Hscrol for this row.
+	sta BRICK_CURRENT_HSCROL,y                          
 
 Update_HScrol
 	inc BRICK_SCREEN_IN_MOTION ; indicate things in motion
+	and #$07                   ; There's a rumor I'm letting this reach 8 by accident
 	sta BRICK_CURRENT_HSCROL,y ; Save new HSCROL.
 
 ; ***************
@@ -3053,11 +3129,11 @@ MainCopyBricks
 ; Set Target HSCROL and Display List LMS to the center screen (per row).
 ;===============================================================================
 ; Uses MainGetRandomScroll to establish the following:
-; PARAM_89 == Direction index
-; PARAM_88 == Speed index
-; PARAM_87 == Delay index
+; M_DIRECTION_INDEX == Direction index
+; M_SPEED_INDEX == Speed index
+; M_DELAY_INDEX == Delay index
 ; also uses:
-; PARAM_86 == temporary save the X register/current row
+; M_TEMP_PHA == temporary save the X register/current row
 ;===============================================================================
 ; * The difference between Bricks entering the screen and the 
 ;   Logo or GameOver graphics is that during normal gameplay 
@@ -3100,7 +3176,7 @@ MainSetCenterTargetScroll
 	ldx #0  ; Brick Row. 0 to 7. (otherwise the TABLES need to be flipped in reverse)
 
 ?InitRowPositions
-	stx PARAM_86 ; Row               ; Need to reload X later
+	stx M_TEMP_PHA ; Row               ; Need to reload X later
 	
 	lda BRICK_SCREEN_CENTER_LMS_TARGET,x ; The center screen LMS low byte
 	sta BRICK_SCREEN_TARGET_LMS,x    ; Set for the row.
@@ -3108,7 +3184,7 @@ MainSetCenterTargetScroll
 	lda #0                           ; The center screen fine scroll position.
 	sta BRICK_SCREEN_TARGET_HSCROL,x ; Set for the row.
 	
-	ldy PARAM_89 ; Direction
+	ldy M_DIRECTION_INDEX ; Direction
 	lda TABLE_CANNED_BRICK_DIRECTIONS,y ; Get direction per canned list for the row.
 	sta BRICK_SCREEN_DIRECTION,x ; Save direction -1, +1 for row.
 	
@@ -3141,13 +3217,13 @@ MainSetCenterTargetScroll
 ?Update_DL_LMS
 	sta DL_BRICK_BASE,x          ; Set low byte of LMS to move row
 
-	ldx PARAM_86 ; Row           ; Get the row number back.
+	ldx M_TEMP_PHA ; Row           ; Get the row number back.
 
-	ldy PARAM_88 ; Speed
+	ldy M_SPEED_INDEX ; Speed
 	lda TABLE_CANNED_BRICK_SPEED,y  ; Get speed per canned list for the row.
 	sta BRICK_SCREEN_HSCROL_MOVE,x  ; Set for the current row.
 	
-	ldy PARAM_87 ; Delay
+	ldy M_DELAY_INDEX ; Delay
 	lda TABLE_CANNED_BRICKS_DELAY,y ; Get delay per canned list for the row.
 	sta BRICK_SCREEN_MOVE_DELAY,x   ; Set for the current row.
 	
@@ -3157,9 +3233,9 @@ MainSetCenterTargetScroll
 	
 	; Not the end.  Increment everything else.
     
-	inc PARAM_89 ; Direction index
-	inc PARAM_88 ; Speed index
-	inc PARAM_87 ; Delay index
+	inc M_DIRECTION_INDEX ; Direction index
+	inc M_SPEED_INDEX ; Speed index
+	inc M_DELAY_INDEX ; Delay index
     
 	jmp ?InitRowPositions         ; Loop again.
 
@@ -3180,9 +3256,9 @@ End_SetCenterTargetSCroll
 ; Set Target HSCROL and Display List LMS to the left or right screen (per row).
 ;===============================================================================
 ; Uses MainGetRandomScroll to establish the following:
-; PARAM_89 == Direction index
-; PARAM_88 == Speed index
-; PARAM_87 == Delay index
+; M_DIRECTION_INDEX == Direction index
+; M_SPEED_INDEX == Speed index
+; M_DELAY_INDEX == Delay index
 ;===============================================================================
 ; * The difference between Bricks entering the screen and the 
 ;   Logo or GameOver graphics is that during normal gameplay 
@@ -3213,7 +3289,7 @@ MainSetClearTargetScroll
 	ldx #0  ; Brick Row. 0 to 7. (otherwise the TABLES need to be flipped in reverse)
 
 ?InitRowPositions	
-	ldy PARAM_89 ; Direction
+	ldy M_DIRECTION_INDEX ; Direction
 	lda TABLE_CANNED_BRICK_DIRECTIONS,y ; Get direction per canned list for the row.
 	sta BRICK_SCREEN_DIRECTION,x        ; Save direction -1, +1 for row.
 	
@@ -3267,11 +3343,11 @@ MainSetClearTargetScroll
 	
 	sta BRICK_SCREEN_TARGET_LMS,x    ; Set low byte of LMS to move row
 	
-	ldy PARAM_88                     ; Y = Speed index
+	ldy M_SPEED_INDEX                     ; Y = Speed index
 	lda TABLE_CANNED_BRICK_SPEED,y   ; Get speed per canned list for the row.
 	sta BRICK_SCREEN_HSCROL_MOVE,x   ; Set for the current row.
 	
-	ldy PARAM_87                     ; Y = Delay index
+	ldy M_DELAY_INDEX                     ; Y = Delay index
 	lda TABLE_CANNED_BRICKS_DELAY,y  ; Get delay per canned list for the row.
 	sta BRICK_SCREEN_MOVE_DELAY,x    ; Set for the current row.
 	
@@ -3281,9 +3357,9 @@ MainSetClearTargetScroll
 	
 	; Not the end.  Increment everything else.
     
-	inc PARAM_89                     ; Direction index
-	inc PARAM_88                     ; Speed index
-	inc PARAM_87                     ; Delay index
+	inc M_DIRECTION_INDEX                     ; Direction index
+	inc M_SPEED_INDEX                     ; Speed index
+	inc M_DELAY_INDEX                     ; Delay index
     
 	clc
 	bcc ?InitRowPositions            ; Loop again.
@@ -3305,9 +3381,9 @@ MainSetClearTargetScroll
 ; randomly chosen row is saved by this routine.
 ;===============================================================================
 ; MODIFIES/OUTPUT:
-; PARAM_89 == Direction index
-; PARAM_88 == Speed index
-; PARAM_87 == Delay index
+; M_DIRECTION_INDEX == Direction index
+; M_SPEED_INDEX == Speed index
+; M_DELAY_INDEX == Delay index
 ;===============================================================================
 ;
 ;===============================================================================
@@ -3318,28 +3394,28 @@ MainGetRandomScroll
 
 	lda RANDOM                   ; choose random canned direction table index.
 	and #$38                     ; Resulting value 00, 08, 10, 18, 20, 28, 30, 38
-	sta PARAM_89 ; Direction     ; save to use later.
+	sta M_DIRECTION_INDEX ; Direction     ; save to use later.
 	
 	lda RANDOM                   ; choose random canned speed table entries.
 	and #$18                     ; Resulting value 00, 08, 10, 18
-	sta PARAM_88 ; Speed         ; save to use later.
+	sta M_SPEED_INDEX ; Speed         ; save to use later.
 	
 	bne ?SkipChooseScrollDelay   ; If Speed is not 0 then don't pick random delay.
 	
-	lda PARAM_89 ; Direction     ; If direction is not 00 or 08 then don't pick random delay.
+	lda M_DIRECTION_INDEX ; Direction     ; If direction is not 00 or 08 then don't pick random delay.
 	cmp #$09
 	bcs ?SkipChooseScrollDelay
 	
 	lda RANDOM
 	and #$38                     ; Resulting value 00, 08, 10, 18, 20, 28, 30, 38
-	sta PARAM_87 ; Delay         ; save to use later.
+	sta M_DELAY_INDEX ; Delay         ; save to use later.
 	
 	clc
 	bcc ?ExitGetRandomScroll
 	
 ?SkipChooseScrollDelay
 	lda #0
-	sta PARAM_87 ; Delay         ; save to use later.
+	sta M_DELAY_INDEX ; Delay         ; save to use later.
 
 ?ExitGetRandomScroll
 	safeRTS ; restore regs for safe exit
@@ -3910,11 +3986,11 @@ skip_29secTick
 ;	mDebugByte BRICK_SCREEN_MOVE_DELAY+7,        28 ; H7
 
 
-	mDebugByte PARAM_87,        32 ; DE lay
+	mDebugByte M_DELAY_INDEX,        32 ; DE lay
 	
-	mDebugByte PARAM_88,        35 ; SP eed
+	mDebugByte M_SPEED_INDEX,        35 ; SP eed
 	
-	mDebugByte PARAM_89,        38 ; DI rection
+	mDebugByte M_DIRECTION_INDEX,        38 ; DI rection
 	
 
 ;===============================================================================
