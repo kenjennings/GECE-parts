@@ -1258,15 +1258,15 @@ DL_BRICK_BASE
 
 ; Non-aligned variables and data.
 
-TEMP = * ; Need to come back here.
+;TEMP ; Need to come back here.
 
-	*=ZROW_LMS0 ; Create table of the addresses of the LMS instructions
+;	*=ZROW_LMS0 ; Create table of the addresses of the LMS instructions
 
-	entry .= 1
-	.rept 8
-		.word [DL_BRICK_BASE+entry] ; DL_BRICK_BASE+1, +5, +9, +13, +17, +21, +25, +29
-		entry .= entry+4
-	.endr
+;	entry .= 1
+;	.rept 8
+;		.word [DL_BRICK_BASE+entry] ; DL_BRICK_BASE+1, +5, +9, +13, +17, +21, +25, +29
+;		entry .= entry+4
+;	.endr
 ;		.word [DL_BRICK_BASE+5 ] ; Row 1 +5
 ;		.word [DL_BRICK_BASE+9 ] ; Row 2 +9
 ;		.word [DL_BRICK_BASE+13] ; Row 3 +13
@@ -1275,7 +1275,7 @@ TEMP = * ; Need to come back here.
 ;		.word [DL_BRICK_BASE+25] ; Row 6 +25
 ;		.word [DL_BRICK_BASE+29] ; Row 7 +29
 
-	*=TEMP
+;	*=TEMP
 
 
 	
