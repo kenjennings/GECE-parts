@@ -1479,8 +1479,10 @@ DL_BRICK_BASE
 ; Therefore, the memory map for the display lines looks like this: 
 ; ignore byte 0,1|20 bytes|1 byte|20 bytes|1 byte|20 bytes == 63 bytes.
 ;             0,1|2.....21|.22...|23....42|.43...|44....63
+;                 ^               ^               ^ 
+; "^" identify first visible character on screen.
 ;
-; The LMS buffers the first two bytes, so the LMS origination position 
+; ANTIC buffers the first two bytes, so the LMS origination position 
 ; for each of the three screens relative to the base of each line:
 ;
 ; Left Screen:   Memory Scan +0,  HSCROL = 0 (or Memory Scan +1,  HSCROL = 8)
@@ -1497,16 +1499,20 @@ BRICK_SCREEN_LMS
 ;
 ; and reference HSCROL value to align the correct bytes...
 ;
-BRICK_SCREEN_HSCROL 
-	.byte 0,0,0
+; (This is no longer needed, because we know it is always 0.
+;
+; BRICK_SCREEN_HSCROL 
+;	.byte 0,0,0
 ;
 ; Same thing from the opposite movement perspective...
 ;
 BRICK_SCREEN_REVERSE_LMS  
 	.byte 42,21,0
 ;
-BRICK_SCREEN_REVERSE_HSCROL 
-	.byte 0,0,0
+; (This is no longer needed, because we know it is always 0.
+;
+;BRICK_SCREEN_REVERSE_HSCROL 
+;	.byte 0,0,0
 ;
 ; DISPLAY LIST: offset from DL_BRICK_BASE to the low byte of LMS addresses:
 ; DL_BRICK_BASE+1, +5, +9, +13, +17, +21, +25, +29 is low byte of row.
@@ -1567,8 +1573,10 @@ BRICK_CURRENT_HSCROL
 ;
 ; VBI/MAIN: Target HSCROL/fine scrolling destination for moving display.
 ;
-BRICK_SCREEN_TARGET_HSCROL 
-	.byte 0,0,0,0,0,0,0,0
+; (This is no longer needed, because we know it is always 0.
+;
+;BRICK_SCREEN_TARGET_HSCROL 
+;	.byte 0,0,0,0,0,0,0,0
 ;
 ; Target LMS offset/coarse scroll to move the display. 
 ; One target per display line... line 0 to line 7.
@@ -2280,11 +2288,12 @@ End_Thumper_Bumper_VBI
 	ldy #7
 
 Do_Next_Immediate_Move
-	ldx BRICK_LMS_OFFSETS,y  ; X = current position of LMS low byte in Display List
-	lda BRICK_SCREEN_TARGET_LMS,y    ; Get destination position.
+	ldx BRICK_LMS_OFFSETS,y  ; X = LMS low byte for current row in the Display List
+	lda BRICK_SCREEN_TARGET_LMS,y    ; Get the LMS destination position.
 	sta DL_BRICK_BASE,x              ; Set the new Display List LMS pointer.
-	lda BRICK_SCREEN_TARGET_HSCROL,y ; get the destination position.
-	sta BRICK_CURRENT_HSCROL,y       ; set the current Hscrol for this row.
+;	lda BRICK_SCREEN_TARGET_HSCROL,y ; Get the fine scroll destination position.
+	lda #0                           ; This is always 0, so no lookup needed.
+	sta BRICK_CURRENT_HSCROL,y       ; Set the current Hscrol for this row.
 	
 	dex
 	bpl Do_Next_Immediate_Move
@@ -2322,18 +2331,19 @@ Set_Brick_In_Motion
 	ldy #7 ; start at last/bottom row.
 
 Check_Pause_or_Movement
-	tya                           ; Transfer Y to X, because this 
-    tax                           ; needs to use DEC MEMORY,X
-
 	lda BRICK_SCREEN_MOVE_DELAY,y ; Delay for frame count?
 	beq Move_Brick_Row            ; No.  Is there fine scroll?
 
 	inc BRICK_SCREEN_IN_MOTION    ; "Pause" still means things are in progress.	
+
+	tya                           ; Copy Y to X, because this needs to use  
+	tax                           ; DEC MEMORY,X, and X is being used for LMS offset.
+
 	dec BRICK_SCREEN_MOVE_DELAY,x ; Decrement timer frame counter.
 	jmp Do_Next_Brick_Row
 	
 Move_Brick_Row
-	ldx BRICK_LMS_OFFSETS,y         ; X = current position of LMS low byte in Display List
+	ldx BRICK_LMS_OFFSETS,y         ; X = LMS low byte for current row in the Display List
 
 	lda DL_BRICK_BASE,x             ; What is the Display List LMS pointer now?	
 	cmp BRICK_SCREEN_TARGET_LMS,y   ; Does it match target?
@@ -2349,16 +2359,26 @@ Move_Brick_Row
 
 ; Move View Right/screen bricks left 
 	lda BRICK_CURRENT_HSCROL,y      ; get the current Hscrol for this row.
-;	sec
-	clc
+	sec
+;	clc
 	sbc BRICK_SCREEN_HSCROL_MOVE,y  ; decrement Hscrol to move graphics left.
 	bpl Update_HScrol       ; If not negative, then no coarse scroll.
 
 	clc                     ; Add to return this...
 	adc #8                  ; ... to positive. (using 8, not 16 color clocks)
 
+;;	pha ; Save current HSCROL in case we need it again.
+	
+	; If the current LMS is the destination LMS, then 
+	; the HCROL truncates to 0 and the LMS increment 
+	; does not occur.  
+
+;;	lda .... ?
+	
 	inc DL_BRICK_BASE,x     ; Increment LMS to Coarse scroll graphics left
-	bne Update_HScrol       ; JMP - low byte Should always be non-zero.
+	
+	
+	bne Update_HScrol       ; JMP - the inc above Should always be non-zero.
 
 ; Reminders: 
 ; -1 == Move view left/screen bricks Right = Increment HSCROL, Decrement LMS.
@@ -2372,10 +2392,10 @@ Do_Bricks_Right_Scroll
 	cmp #7 ; if 8 or greater 
 	bcc Update_HScrol       ; If no carry, then less than 8/limit.
 
-	sbc #8                  ; Subtract 8 (using 8, not 16 color clocks)
+	sbc #8                  ; Subtract 8 (because fine scrolling 8, not 16 color clocks)
 	
 	dec DL_BRICK_BASE,x     ; Decrement LMS to coarse scroll graphics right.
-	pha ; Save current HSCROL in case we need it.
+	pha ; Save current HSCROL in case we need it again.
 	
 	; As soon as decrement crosses into the target LMS, 
 	; then the HSCROL goes to and stays at 0.   
@@ -2389,7 +2409,7 @@ Do_Bricks_Right_Scroll
 	jmp Update_HScrol ; still positive, so we did not pass byte 0, hscrol 8
 
 ?End_Of_Right_Scroll
-	pla    ; Get it off stack to discard.
+	pla    ; Discard the saved HSCROL off the stack.
 	lda #0 ; force to 0.
 	beq Update_HScrol
 	
@@ -2398,7 +2418,8 @@ Do_Bricks_Right_Scroll
 
 Finish_Brick_HScroll 
 	lda BRICK_CURRENT_HSCROL,y
-	cmp BRICK_SCREEN_TARGET_HSCROL,y
+;	cmp BRICK_SCREEN_TARGET_HSCROL,y ; not needed.
+	; the goal is always 0, so lda sets correct flag.
 	beq Do_Next_Brick_Row ; Everything matches. nothing to do.
 
 	lda BRICK_SCREEN_DIRECTION,y    ; Are we going left or right?
@@ -2412,6 +2433,7 @@ Finish_Brick_HScroll
 ; -1 == Move view left/screen bricks Right = Increment HSCROL, Decrement LMS.
 ; +1 == Move view right/screen bricks Left = Decrement HSCROL, Increment LMS
 
+; Move view right/screen bricks Left
 	lda BRICK_CURRENT_HSCROL,y      ; get the current Hscrol for this row.
 	sec ; Is this needed?  or clc?
 	sbc BRICK_SCREEN_HSCROL_MOVE,y  ; decrement it to move graphics left.
@@ -2420,7 +2442,8 @@ Finish_Brick_HScroll
 ;	bmi Set_Left_Home               ; If it went negative reset to end position.	
 ; Technically, this should only be 0.
 Set_Left_Home
-	lda BRICK_SCREEN_TARGET_HSCROL,y ; if it went negative then reset to home
+;	lda BRICK_SCREEN_TARGET_HSCROL,y ; if it went negative then reset to home
+	lda #0 ; Since this is always 0, the table lookup is not needed.
 	jmp Update_HScrol
 
 ; Reminders: 
@@ -2428,7 +2451,8 @@ Set_Left_Home
 ; +1 == Move view right/screen bricks Left = Decrement HSCROL, Increment LMS
 	
 Do_Finish_Right_Scroll
-	lda BRICK_SCREEN_TARGET_HSCROL,y ; force to the ending Hscrol for this row.
+;	lda BRICK_SCREEN_TARGET_HSCROL,y ; force to the ending Hscrol for this row.
+	lda #0 ; This is always 0, so the table lookup is not needed.
 	sta BRICK_CURRENT_HSCROL,y                          
 
 Update_HScrol
@@ -3181,8 +3205,9 @@ MainSetCenterTargetScroll
 	lda BRICK_SCREEN_CENTER_LMS_TARGET,x ; The center screen LMS low byte
 	sta BRICK_SCREEN_TARGET_LMS,x    ; Set for the row.
 	
-	lda #0                           ; The center screen fine scroll position.
-	sta BRICK_SCREEN_TARGET_HSCROL,x ; Set for the row.
+; The table lookup is not needed, because the target is always 0.	
+;	lda #0                           ; The center screen fine scroll position.
+;	sta BRICK_SCREEN_TARGET_HSCROL,x ; Set for the row.
 	
 	ldy M_DIRECTION_INDEX ; Direction
 	lda TABLE_CANNED_BRICK_DIRECTIONS,y ; Get direction per canned list for the row.
@@ -3192,7 +3217,8 @@ MainSetCenterTargetScroll
 
 ; "Reverse" because we're moving from Left or Right screens to the Center.
 
-	lda BRICK_SCREEN_REVERSE_HSCROL,y ; Get starting hscroll position per scroll direction.
+;	lda BRICK_SCREEN_REVERSE_HSCROL,y ; Get starting hscroll position per scroll direction.
+	lda #0  ; This is always 0
 	sta BRICK_CURRENT_HSCROL,x   ; Set for the current row.
 
 ; Get Starting LMS position per scroll direction.
@@ -3295,8 +3321,11 @@ MainSetClearTargetScroll
 	
 	iny                              ; Now direction is adjusted to 0, 2
 
-	lda BRICK_SCREEN_HSCROL,y        ; Get starting hscroll position per scroll direction.
-	sta BRICK_SCREEN_TARGET_HSCROL,x ; Set for the destination row.
+
+;	lda BRICK_SCREEN_HSCROL,y        ; Get starting hscroll position per scroll direction.
+;	lda #0                           ; it is alway 0, so do not need that lookup.
+;	sta BRICK_SCREEN_TARGET_HSCROL,x ; Set for the destination row.
+; and since the goal is always 0 it never needs to be tracked in the first place.
 	
 	lda BRICK_SCREEN_LMS,y           ; Get Starting LMS position per scroll direction.
 	
@@ -3310,7 +3339,8 @@ MainSetClearTargetScroll
 	
 ; "Reverse" because we're moving from Left or Right screens to the Center.
 
-	lda BRICK_SCREEN_REVERSE_HSCROL,y ; Get starting hscroll position per scroll direction.
+;	lda BRICK_SCREEN_REVERSE_HSCROL,y ; Get starting hscroll position per scroll direction.
+	lda #0 ; This is always 0.
 	sta BRICK_CURRENT_HSCROL,x   ; Set for the current row.
 
 ; Get Starting LMS position per scroll direction.
@@ -3883,22 +3913,6 @@ skip_29secTick
 
 ;	mDebugByte BRICK_CURRENT_HSCROL+7,        28 ; H7
 
-
-;	mDebugByte BRICK_SCREEN_TARGET_HSCROL+0,        14 ; H0
-	
-;	mDebugByte BRICK_SCREEN_TARGET_HSCROL+1,        16 ; H1
-	
-;	mDebugByte BRICK_SCREEN_TARGET_HSCROL+2,        18 ; H2
-	
-;	mDebugByte BRICK_SCREEN_TARGET_HSCROL+3,        20 ; H3
-	
-;	mDebugByte BRICK_SCREEN_TARGET_HSCROL+4,        22 ; H4
-
-;	mDebugByte BRICK_SCREEN_TARGET_HSCROL+5,        24 ; H5
-	
-;	mDebugByte BRICK_SCREEN_TARGET_HSCROL+6,        26 ; H6
-
-;	mDebugByte BRICK_SCREEN_TARGET_HSCROL+7,        28 ; H7
 
 
 	mDebugByte DL_BRICK_BASE+1,        14 ; H0
