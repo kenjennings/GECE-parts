@@ -3200,26 +3200,20 @@ MainSetCenterTargetScroll
 	ldx #0  ; Brick Row. 0 to 7. (otherwise the TABLES need to be flipped in reverse)
 
 ?InitRowPositions
-	stx M_TEMP_PHA ; Row               ; Need to reload X later
+	stx M_TEMP_PHA ; Row                ; Need to reload X later
 	
 	lda BRICK_SCREEN_CENTER_LMS_TARGET,x ; The center screen LMS low byte
-	sta BRICK_SCREEN_TARGET_LMS,x    ; Set for the row.
-	
-; The table lookup is not needed, because the target is always 0.	
-;	lda #0                           ; The center screen fine scroll position.
-;	sta BRICK_SCREEN_TARGET_HSCROL,x ; Set for the row.
-	
+	sta BRICK_SCREEN_TARGET_LMS,x       ; Set for the row.
+
+	lda #0  ; This is always 0
+	sta BRICK_CURRENT_HSCROL,x          ; Set for the current row.
+		
 	ldy M_DIRECTION_INDEX ; Direction
 	lda TABLE_CANNED_BRICK_DIRECTIONS,y ; Get direction per canned list for the row.
-	sta BRICK_SCREEN_DIRECTION,x ; Save direction -1, +1 for row.
+	sta BRICK_SCREEN_DIRECTION,x        ; Save direction -1, +1 for row.
 	
-	iny                          ; Now direction is adjusted to 0, 2
-
-; "Reverse" because we're moving from Left or Right screens to the Center.
-
-;	lda BRICK_SCREEN_REVERSE_HSCROL,y ; Get starting hscroll position per scroll direction.
-	lda #0  ; This is always 0
-	sta BRICK_CURRENT_HSCROL,x   ; Set for the current row.
+	iny                              ; Now direction is adjusted to 0, 2
+	lda BRICK_SCREEN_LMS,y           ; Get Starting LMS position per scroll direction.
 
 ; Get Starting LMS position per scroll direction.
 
@@ -3235,15 +3229,15 @@ MainSetCenterTargetScroll
 ?Prepare_For_LMS_Update
     pha  ; Need to save A which holds the new LMS until X is correct offset into display list
    
-    lda BRICK_LMS_OFFSETS,x      ; Get Display List LMS low byte offset per the row.
+    lda BRICK_LMS_OFFSETS,x         ; Get Display List LMS low byte offset per the row.
 	tax
 	
 	pla ; Get new LMS value back.  And store into display list.
 	
 ?Update_DL_LMS
-	sta DL_BRICK_BASE,x          ; Set low byte of LMS to move row
+	sta DL_BRICK_BASE,x             ; Set low byte of LMS to move row
 
-	ldx M_TEMP_PHA ; Row           ; Get the row number back.
+	ldx M_TEMP_PHA ; Row            ; Get the row number back.
 
 	ldy M_SPEED_INDEX ; Speed
 	lda TABLE_CANNED_BRICK_SPEED,y  ; Get speed per canned list for the row.
@@ -3315,65 +3309,51 @@ MainSetClearTargetScroll
 	ldx #0  ; Brick Row. 0 to 7. (otherwise the TABLES need to be flipped in reverse)
 
 ?InitRowPositions	
+	stx M_TEMP_PHA ; Row               ; Need to reload X later
+
 	ldy M_DIRECTION_INDEX ; Direction
 	lda TABLE_CANNED_BRICK_DIRECTIONS,y ; Get direction per canned list for the row.
 	sta BRICK_SCREEN_DIRECTION,x        ; Save direction -1, +1 for row.
 	
-	iny                              ; Now direction is adjusted to 0, 2
-
-
-;	lda BRICK_SCREEN_HSCROL,y        ; Get starting hscroll position per scroll direction.
-;	lda #0                           ; it is alway 0, so do not need that lookup.
-;	sta BRICK_SCREEN_TARGET_HSCROL,x ; Set for the destination row.
-; and since the goal is always 0 it never needs to be tracked in the first place.
-	
-	lda BRICK_SCREEN_LMS,y           ; Get Starting LMS position per scroll direction.
-	
-	
-	
-	
-	
-	
-	
-	
-	
-; "Reverse" because we're moving from Left or Right screens to the Center.
-
-;	lda BRICK_SCREEN_REVERSE_HSCROL,y ; Get starting hscroll position per scroll direction.
 	lda #0 ; This is always 0.
 	sta BRICK_CURRENT_HSCROL,x   ; Set for the current row.
+	
+	iny                              ; Now direction is adjusted to 0, 2
+	lda BRICK_SCREEN_LMS,y           ; Get Starting LMS position per scroll direction.
 
-; Get Starting LMS position per scroll direction.
+; moving from Center to Left or Right screens.
+
+; Get Ending LMS position per scroll direction.
 
 	cpy #0 ; 
 	bne ?Do_Moving_Screen_Right
 	
-	lda BRICK_SCREEN_RIGHT_LMS_TARGET,x ; Left means starting from Right Screen 
-	jmp ?Prepare_For_LMS_Update
+	lda BRICK_SCREEN_LEFT_LMS_TARGET,x ; Left means going to the Left Screen 
+	jmp ?Do_Target_Update
 	
 ?Do_Moving_Screen_Right
-    lda BRICK_SCREEN_LEFT_LMS_TARGET,x ; Right means starting from Left Screen 
-      
-?Prepare_For_LMS_Update
-    pha  ; Need to save A which holds the new LMS until X is correct offset into display list
-   
+    lda BRICK_SCREEN_RIGHT_LMS_TARGET,x ; Right means going to the Right Screen 
+ 
+?Do_Target_Update
+	sta BRICK_SCREEN_TARGET_LMS,x    ; Set target
+
+; For Safety, force the LMS to the Center screen. 
+; (Really should not be necessary.) 
+
+	lda BRICK_SCREEN_CENTER_LMS_TARGET,x ; The center screen LMS low byte
+	
+	pha  ; Need to save A which holds the new LMS until X is correct offset into display list
+	
     lda BRICK_LMS_OFFSETS,x      ; Get Display List LMS low byte offset per the row.
 	tax
 	
 	pla ; Get new LMS value back.  And store into display list.
 	
-?Update_DL_LMS
-	sta DL_BRICK_BASE,x          ; Set low byte of LMS to move row
+	sta DL_BRICK_BASE,x              ; Set low byte of LMS to move row
 	
+	ldx M_TEMP_PHA ; Row             ; Get the row number back.
 	
-	
-	
-	
-	
-	
-	sta BRICK_SCREEN_TARGET_LMS,x    ; Set low byte of LMS to move row
-	
-	ldy M_SPEED_INDEX                     ; Y = Speed index
+	ldy M_SPEED_INDEX                ; Y = Speed index
 	lda TABLE_CANNED_BRICK_SPEED,y   ; Get speed per canned list for the row.
 	sta BRICK_SCREEN_HSCROL_MOVE,x   ; Set for the current row.
 	
@@ -3391,8 +3371,7 @@ MainSetClearTargetScroll
 	inc M_SPEED_INDEX                     ; Speed index
 	inc M_DELAY_INDEX                     ; Delay index
     
-	clc
-	bcc ?InitRowPositions            ; Loop again.
+	jmp ?InitRowPositions            ; Loop again.
 
 ?EndSetClearTargetScroll
 
