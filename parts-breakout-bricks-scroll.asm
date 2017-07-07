@@ -2291,37 +2291,40 @@ Do_Next_Immediate_Move
 	ldx BRICK_LMS_OFFSETS,y  ; X = LMS low byte for current row in the Display List
 	lda BRICK_SCREEN_TARGET_LMS,y    ; Get the LMS destination position.
 	sta DL_BRICK_BASE,x              ; Set the new Display List LMS pointer.
-;	lda BRICK_SCREEN_TARGET_HSCROL,y ; Get the fine scroll destination position.
 	lda #0                           ; This is always 0, so no lookup needed.
 	sta BRICK_CURRENT_HSCROL,y       ; Set the current Hscrol for this row.
 	
 	dex
 	bpl Do_Next_Immediate_Move
 
-	lda #0  ; Clear the immediate move flag, and skip over doing fine scroll...
+	lda #0                           ; Clear the immediate move flag, and...
 	sta BRICK_SCREEN_IMMEDIATE_POSITION
 ;	beq End_Brick_Scroll_Update
-	jmp End_Brick_Scroll_Update
+	jmp End_Brick_Scroll_Update      ; skip over doing fine scroll...
+
+; *****************
+; FINE SCROLL ENTRY   
+; *****************
 
 Fine_Scroll_Display   
 	lda BRICK_SCREEN_START_SCROLL ; MAIN says to start scrolling?
-	beq Check_Brick_Scroll        ; No?  So, is a Scroll already running.
-	; and if a scroll is already in progress when MAIN toggles
+	beq Check_Brick_Scroll        ; No?  So, is a Scroll already running?
+	; If a scroll is already in progress when MAIN toggles
 	; the BRICK_SCREEN_START_SCROLL flag it really has no effect.
-	; the current scroll keeps on scrolling.
+	; The current scroll keeps on scrolling.
 	lda #0
 	sta BRICK_SCREEN_START_SCROLL ; Turn off MAIN request.
 	inc BRICK_SCREEN_IN_MOTION    ; Temporarily flag Scroll in progress.
 
 Check_Brick_Scroll
-	lda BRICK_SCREEN_IN_MOTION
-	bne Set_Brick_In_Motion
+	lda BRICK_SCREEN_IN_MOTION    ; Is the screen in motion?
+	bne Reset_Brick_In_Motion     ; Yes. Reset for this frame.
 ;	beq End_Brick_Scroll_Update
-	jmp End_Brick_Scroll_Update
+	jmp End_Brick_Scroll_Update   ; Nothing in motion.  Skip scrolling.
 
 	
-Set_Brick_In_Motion
-	lda #0     ; Temporarily indicate no motion
+Reset_Brick_In_Motion
+	lda #0                        ; Temporarily force indicator for no motion
 	sta BRICK_SCREEN_IN_MOTION 
 
 ; ***************
@@ -2343,123 +2346,132 @@ Check_Pause_or_Movement
 	jmp Do_Next_Brick_Row
 	
 Move_Brick_Row
-	ldx BRICK_LMS_OFFSETS,y         ; X = LMS low byte for current row in the Display List
+	ldx BRICK_LMS_OFFSETS,y       ; X = LMS low byte for current row in the Display List
 
-	lda DL_BRICK_BASE,x             ; What is the Display List LMS pointer now?	
-	cmp BRICK_SCREEN_TARGET_LMS,y   ; Does it match target?
+	lda DL_BRICK_BASE,x           ; What is the Display List LMS pointer now?	
+	cmp BRICK_SCREEN_TARGET_LMS,y ; Does it match target?
 	
-	beq Finish_Brick_HScroll        ; Yes.  Then is more HScroll needed?
+	beq ?Finish_View_Right_HScroll ; Yes. Then maybe more HScroll needed?
 
 ; Reminders: 
 ; -1 == Move view left/screen bricks Right = Increment HSCROL, Decrement LMS.
 ; +1 == Move view right/screen bricks Left = Decrement HSCROL, Increment LMS.
 	
-	lda BRICK_SCREEN_DIRECTION,y 	; Are we going left or right?
-	bmi Do_Bricks_Right_Scroll		; -1 = view left/graphics right, +1 = view Right/graphics left
+	lda BRICK_SCREEN_DIRECTION,y ; Are we going left or right?
+	bmi Do_View_Scroll_Left      ; -1 = view left/graphics right, +1 = view Right/graphics left
 
-; Move View Right/screen bricks left 
+; *****************
+; SCROLL VIEW RIGHT - Move View Right/screen bricks left 
+; *****************
+
 	lda BRICK_CURRENT_HSCROL,y      ; get the current Hscrol for this row.
 	sec
-;	clc
 	sbc BRICK_SCREEN_HSCROL_MOVE,y  ; decrement Hscrol to move graphics left.
-	bpl Update_HScrol       ; If not negative, then no coarse scroll.
+
+; Remember that LMS+1, HSCROL 8 is the same result as LMS+0, HSCROL 0.
+; Therefore, HSCROL cannot reach 8.  It must "wrap" at 7 to force coarse 
+; scroll to make the motion fliud.
+
+; Assuming HSCROL starts from 0 to 7 and the HSCROL adjustment may 
+; be 1 to 8 color clocks, then the result may be HSCROL positions:
+; 6, 5, 4, 3, 2, 1, 0, -1, -2, -3, -4, -5, -6, -7, -8
+; where all negative values are positions in the next screen byte.
+; Therefore, add 8 to the HSCROL to get to the correct position.
+
+	bpl Update_HScrol       ; If still positive, then no coarse scroll.
 
 	clc                     ; Add to return this...
 	adc #8                  ; ... to positive. (using 8, not 16 color clocks)
-
-;;	pha ; Save current HSCROL in case we need it again.
 	
-	; If the current LMS is the destination LMS, then 
-	; the HCROL truncates to 0 and the LMS increment 
-	; does not occur.  
-
-;;	lda .... ?
-	
-	inc DL_BRICK_BASE,x     ; Increment LMS to Coarse scroll graphics left
-	
-	
+	inc DL_BRICK_BASE,x     ; Increment LMS to Coarse scroll view right, graphics left
 	bne Update_HScrol       ; JMP - the inc above Should always be non-zero.
 
+; Note that if the LMS increment above has now reached the target LMS 
+; location the current (calculated) HSCROL in the Accumulator is valid,
+; so no further evaluation is needed. The next frame(s) will go to the
+; "Finish_View_Right_HScroll" section until everything matches exactly.	
+	
 ; Reminders: 
 ; -1 == Move view left/screen bricks Right = Increment HSCROL, Decrement LMS.
 ; +1 == Move view right/screen bricks Left = Decrement HSCROL, Increment LMS
 
-; Move view left/screen bricks Right	
-Do_Bricks_Right_Scroll	    
+; ****************
+; SCROLL VIEW LEFT - Move view left/screen bricks Right
+; ****************
+
+Do_View_Scroll_Left	    
 	lda BRICK_CURRENT_HSCROL,y      ; get the current Hscrol for this row.
 	clc
 	adc BRICK_SCREEN_HSCROL_MOVE,y  ; increment Hscrol to move graphics right.
-	cmp #7 ; if 8 or greater 
-	bcc Update_HScrol       ; If no carry, then less than 8/limit.
 
+; Remember that LMS+1, HSCROL 8 is the same result as LMS+0, HSCROL 0.
+; Therefore, HSCROL cannot reach 8.  It must "wrap" at 7 to force coarse 
+; scroll to make the motion fliud.
+
+; Assuming HSCROL starts from 0 to 7 and the HSCROL adjustment may 
+; be 1 to 8 color clocks, then the result may be HSCROL positions:
+; 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1 
+; where all values over 7 are positions in the next screen byte.
+; Therefore, subtract 8 from the HSCROL to get to the correct position.
+	
+	cmp #7 ; if 8 or greater 
+	bcc Update_HScrol       ; No carry means Acc < 8, so no coarse scroll.
+
+	sec
 	sbc #8                  ; Subtract 8 (because fine scrolling 8, not 16 color clocks)
 	
 	dec DL_BRICK_BASE,x     ; Decrement LMS to coarse scroll graphics right.
-	pha ; Save current HSCROL in case we need it again.
 	
-	; As soon as decrement crosses into the target LMS, 
-	; then the HSCROL goes to and stays at 0.   
-	; Do not entertain re-evaluating (or re-incrementing).
+; Note that if the LMS decrement above has now reached the target LMS 
+; location the current (calculated) HSCROL in the Accumulator may not
+; be valid. At the target LMS location only HCROL value 0 is valid.
+; Therefore, further evaluation is needed to truncate HSCROL. 
+
+	pha ; Save current HSCROL for when we need it again.
 	
-	lda DL_BRICK_BASE,x
-	cmp BRICK_SCREEN_TARGET_LMS,y
-	beq ?End_Of_Right_Scroll 
+	lda DL_BRICK_BASE,x           ; Get the current (new) LMS
+	cmp BRICK_SCREEN_TARGET_LMS,y ; Compare to target
+	beq ?End_Of_Right_Scroll      ; Matching LMS means truncate HSCROL to 0
 	
-	pla ; Get the HSCROL back.
-	jmp Update_HScrol ; still positive, so we did not pass byte 0, hscrol 8
+	pla                           ; LMS does not match. Get the HSCROL back.
+	bpl Update_HScrol             ; 0 to 7 is positive, Go update scroll
 
 ?End_Of_Right_Scroll
-	pla    ; Discard the saved HSCROL off the stack.
-	lda #0 ; force to 0.
-	beq Update_HScrol
+	pla                           ; Discard the saved HSCROL off the stack.
+	bpl Do_Finish_HScroll         ; force to 0 and update new hscrol.
+
+; *****************
+; FINAL FINE SCROLL - Move View Right/screen bricks left 
+; *****************
 	
-; The current LMS matches the target LMS. 
-; a final Hscroll may be needed.
+; We know the current LMS matches the target LMS. 
+; If this is a View Right/Graphics Left move then more fine
+; scrolling may be needed to reach the target. 
 
-Finish_Brick_HScroll 
-	lda BRICK_CURRENT_HSCROL,y
-;	cmp BRICK_SCREEN_TARGET_HSCROL,y ; not needed.
-	; the goal is always 0, so lda sets correct flag.
-	beq Do_Next_Brick_Row ; Everything matches. nothing to do.
+?Finish_View_Right_HScroll 
+	lda BRICK_CURRENT_HSCROL,y ; If this is zero then HSCROL is done.
+	beq Do_Next_Brick_Row      ; Everything matches. nothing to do.
 
-	lda BRICK_SCREEN_DIRECTION,y    ; Are we going left or right?
-; For all practical purpose  -1/view left/graphics right  
-; should not be possible. The only possible HSCROL value  
-; when LMS matches in this direction is 0.
-	bmi Do_Finish_Right_Scroll      ; -1 = view left/graphics right, +1 = view Right/graphics left
+	lda BRICK_SCREEN_DIRECTION,y ; Are we going left or right?  
+	bmi Do_Finish_HScroll        ; If View Left/Graphics Right, then we're done.
 	
-; scroll View Left/screen contents right 
-; Reminders: 
-; -1 == Move view left/screen bricks Right = Increment HSCROL, Decrement LMS.
-; +1 == Move view right/screen bricks Left = Decrement HSCROL, Increment LMS
-
-; Move view right/screen bricks Left
+; Scroll View Left/screen contents right 
 	lda BRICK_CURRENT_HSCROL,y      ; get the current Hscrol for this row.
-	sec ; Is this needed?  or clc?
+	sec 
 	sbc BRICK_SCREEN_HSCROL_MOVE,y  ; decrement it to move graphics left.
-	bpl Update_HScrol               ; If not negative, then no forced adjustment.
+	bpl Update_HScrol               ; If positive, then no forced (re)adjustment.
 
-;	bmi Set_Left_Home               ; If it went negative reset to end position.	
-; Technically, this should only be 0.
-Set_Left_Home
-;	lda BRICK_SCREEN_TARGET_HSCROL,y ; if it went negative then reset to home
-	lda #0 ; Since this is always 0, the table lookup is not needed.
-	jmp Update_HScrol
-
-; Reminders: 
-; -1 == Move view left/screen bricks Right = Increment HSCROL, Decrement LMS.
-; +1 == Move view right/screen bricks Left = Decrement HSCROL, Increment LMS
+; The new HSCROL went negative, therefore the
+; scroll is over.  Force HSCROL to 0 position.	
 	
-Do_Finish_Right_Scroll
-;	lda BRICK_SCREEN_TARGET_HSCROL,y ; force to the ending Hscrol for this row.
-	lda #0 ; This is always 0, so the table lookup is not needed.
-	sta BRICK_CURRENT_HSCROL,y                          
+Do_Finish_HScroll
+	lda #0 ; Force to 0, as this is the end of scrolling.                      
 
 Update_HScrol
-	inc BRICK_SCREEN_IN_MOTION ; indicate things in motion
 	and #$07                   ; There's a rumor I'm letting this reach 8 by accident
 	sta BRICK_CURRENT_HSCROL,y ; Save new HSCROL.
-
+	inc BRICK_SCREEN_IN_MOTION ; Indicate things in motion on this frame.
+	
 ; ***************
 ; END LOOP  
 ; ***************
