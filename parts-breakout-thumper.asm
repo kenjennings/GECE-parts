@@ -440,7 +440,7 @@ DIAG_SLOW_ME_CLOCK = PARAM_88 ; = $cf ; DIAG_SLOW_ME_CLOCK
 	.byte 0,0,0 ; 0 is no animation. VBI Sets DLI vector for this.
 
 	*= THUMPER_FRAME_LIMIT  
-	.byte 11,11,11 ; at this limit return animation frame to 0 
+	.byte 16,16,16 ; at this limit return animation frame to 0 
 
 	*= THUMPER_COLOR
 	.byte $02,$02,$02
@@ -1047,12 +1047,17 @@ THUMPER_HORIZ_ANIM_TABLE
 	.byte <THUMPER_FRAME_WAIT
 	.byte <THUMPER_FRAME1
 	.byte <THUMPER_FRAME1
+	.byte <THUMPER_FRAME1
+	.byte <THUMPER_FRAME2
 	.byte <THUMPER_FRAME2
 	.byte <THUMPER_FRAME2
 	.byte <THUMPER_FRAME3
 	.byte <THUMPER_FRAME3
+	.byte <THUMPER_FRAME3
 	.byte <THUMPER_FRAME4
 	.byte <THUMPER_FRAME4
+	.byte <THUMPER_FRAME4
+	.byte <THUMPER_FRAME5
 	.byte <THUMPER_FRAME5
 	.byte <THUMPER_FRAME5
 
@@ -1064,21 +1069,31 @@ THUMPER_LEFT_HPOS_TABLE
 	.byte MIN_PIXEL_X-1 ; Waiting for Proximity 
 	.byte MIN_PIXEL_X-4
 	.byte MIN_PIXEL_X-4
+	.byte MIN_PIXEL_X-4
+	.byte MIN_PIXEL_X-5
+	.byte MIN_PIXEL_X-5
 	.byte MIN_PIXEL_X-5
 	.byte MIN_PIXEL_X-5
 	.byte MIN_PIXEL_X-5
 	.byte MIN_PIXEL_X-5
 	.byte MIN_PIXEL_X-6
 	.byte MIN_PIXEL_X-6
+	.byte MIN_PIXEL_X-6
 	.byte MIN_PIXEL_X-7
 	.byte MIN_PIXEL_X-7
-
+	.byte MIN_PIXEL_X-7
+	
 THUMPER_LEFT_SIZE_TABLE
 	.byte ~00000000 ; Waiting for Proximity 
 	.byte ~00000011 
 	.byte ~00000011 
+	.byte ~00000011 
 	.byte ~00000001
 	.byte ~00000001
+	.byte ~00000001
+	.byte ~00000000
+	.byte ~00000000
+	.byte ~00000000
 	.byte ~00000000
 	.byte ~00000000
 	.byte ~00000000
@@ -1094,12 +1109,17 @@ THUMPER_RIGHT_HPOS_TABLE
 	.byte MAX_PIXEL_X+1 ; Waiting for Proximity 
 	.byte MAX_PIXEL_X+1
 	.byte MAX_PIXEL_X+1
+	.byte MAX_PIXEL_X+1
+	.byte MAX_PIXEL_X+4
 	.byte MAX_PIXEL_X+4
 	.byte MAX_PIXEL_X+4
 	.byte MAX_PIXEL_X+5
 	.byte MAX_PIXEL_X+5
+	.byte MAX_PIXEL_X+5
 	.byte MAX_PIXEL_X+6
 	.byte MAX_PIXEL_X+6
+	.byte MAX_PIXEL_X+6
+	.byte MAX_PIXEL_X+7
 	.byte MAX_PIXEL_X+7
 	.byte MAX_PIXEL_X+7
 
@@ -1107,8 +1127,13 @@ THUMPER_RIGHT_SIZE_TABLE
 	.byte ~00000000 ; Waiting for Proximity 
 	.byte ~11000000
 	.byte ~11000000
+	.byte ~11000000
 	.byte ~01000000
 	.byte ~01000000
+	.byte ~01000000
+	.byte ~00000000
+	.byte ~00000000
+	.byte ~00000000
 	.byte ~00000000
 	.byte ~00000000
 	.byte ~00000000
