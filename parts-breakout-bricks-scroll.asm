@@ -287,7 +287,7 @@ PARAM_85 = $cc ; ZBRICK_COL  -- coord_X reduced to brick number 1-14
 PARAM_86 = $cd ; ZCOORD_Y    -- coord_Y for collision check
 PARAM_87 = $ce ; ZCOORD_X    -- coord_X for collision check 
 PARAM_88 = $cf ; 
-PARAM_89 = $d0 ;    
+PARAM_89 = $d0 ; M_TEMP1  -- local temporary value
 PARAM_90 = $d1 ; DIAG_BRICK_Y - remember Y for looping brick destruction 
 PARAM_91 = $d2 ; DIAG_BRICK_X - remember X for looping brick destruction
 PARAM_92 = $d3 ; DIAG_SLOW_ME_CLOCK
@@ -354,10 +354,12 @@ ZTITLE_COLPM0 = ZEROPAGE_POINTER_9 ; $EE - VBI sets for DLI to use
 
 
 
-M_DIRECTION_INDEX = PARAM_94 ; MAIN: Direction Index
-M_SPEED_INDEX =     PARAM_95 = $D9 ; MAIN: Speed Index
-M_DELAY_INDEX =     PARAM_96 = $DA ; MAIN: Delay Index
-M_TEMP_PHA =        PARAM_97 = $DB ; MAIN: Temporary SAVE/PHA
+M_DIRECTION_INDEX = PARAM_94 ; = $D8 ; MAIN: Direction Index
+M_SPEED_INDEX =     PARAM_95 ; = $D9 ; MAIN: Speed Index
+M_DELAY_INDEX =     PARAM_96 ; = $DA ; MAIN: Delay Index
+M_TEMP_PHA =        PARAM_97 ; = $DB ; MAIN: Temporary SAVE/PHA
+
+M_TEMP1 = PARAM_89 ; = $d0 ;   -- local temporary value
 
 
 ;===============================================================================
@@ -603,7 +605,7 @@ DIAG_TEMP1 = PARAM_93 ; = $d5 ; DIAG_TEMP1
 ;   INITIALIZE ZERO PAGE VALUES
 ;===============================================================================
 
-    *= BRICK_SCREEN_START_SCROLL ; and BRICK_SCREEN_IMMEDIATE_POSITION and BRICK_SCREEN_IN_MOTION
+    *=BRICK_SCREEN_START_SCROLL ; and BRICK_SCREEN_IMMEDIATE_POSITION and BRICK_SCREEN_IN_MOTION
     .byte 0,0,0
     
 
@@ -1158,14 +1160,57 @@ DISPLAY_LIST_THUMPER_RTS ; destination for animation routine return.
 DL_BRICK_BASE
 	; DL_BRICK_BASE+1, +5, +9, +13, +17, +21, +25, +29 is low byte of row.
 	; Only this byte should be needed for scrolling each row.
-	entry .= 0
-	.rept 8 ; repeat for 8 lines of bricks (56 scan lines) 
+
 	; scan line +0 to +4  -- 5 scan lines of mode C copied/extended
-
 	.byte DL_MAP_C|DL_LMS|DL_VSCROLL|DL_HSCROLL
-	.word [BRICK_LINE0+entry] ; not immediately offset into middle of graphics line
-;	.word [GAMEOVER_LINE0+[entry*20]-2] 
+	.word [BRICK_LINE0+21] ; offset into center screen
+	; two blank scan line
+	.byte DL_BLANK_2 	
 
+	; scan line +0 to +4  -- 5 scan lines of mode C copied/extended
+	.byte DL_MAP_C|DL_LMS|DL_VSCROLL|DL_HSCROLL
+	.word [BRICK_LINE1+21] ; offset into center screen
+	; two blank scan line
+	.byte DL_BLANK_2 	
+	
+	; scan line +0 to +4  -- 5 scan lines of mode C copied/extended
+	.byte DL_MAP_C|DL_LMS|DL_VSCROLL|DL_HSCROLL
+	.word [BRICK_LINE2+21] ; offset into center screen
+	; two blank scan line
+	.byte DL_BLANK_2 	
+
+	; scan line +0 to +4  -- 5 scan lines of mode C copied/extended
+	.byte DL_MAP_C|DL_LMS|DL_VSCROLL|DL_HSCROLL
+	.word [BRICK_LINE3+21] ; offset into center screen
+	; two blank scan line
+	.byte DL_BLANK_2 	
+	
+
+	; scan line +0 to +4  -- 5 scan lines of mode C copied/extended
+	.byte DL_MAP_C|DL_LMS|DL_VSCROLL|DL_HSCROLL
+	.word [BRICK_LINE4+21] ; offset into center screen
+	; two blank scan line
+	.byte DL_BLANK_2 	
+
+	; scan line +0 to +4  -- 5 scan lines of mode C copied/extended
+	.byte DL_MAP_C|DL_LMS|DL_VSCROLL|DL_HSCROLL
+	.word [BRICK_LINE5+21] ; offset into center screen
+	; two blank scan line
+	.byte DL_BLANK_2 	
+	
+	; scan line +0 to +4  -- 5 scan lines of mode C copied/extended
+	.byte DL_MAP_C|DL_LMS|DL_VSCROLL|DL_HSCROLL
+	.word [BRICK_LINE6+21] ; offset into center screen
+	; two blank scan line
+	.byte DL_BLANK_2 	
+
+	; scan line +0 to +4  -- 5 scan lines of mode C copied/extended
+	.byte DL_MAP_C|DL_LMS|DL_VSCROLL|DL_HSCROLL
+	.word [BRICK_LINE7+21] ; offset into center screen
+	; two blank scan line
+	.byte DL_BLANK_2 	
+	
+	
 ;===============================================================================
 ; ****   ******   **    *****
 ; ** **    **    ****  **  
@@ -1195,20 +1240,14 @@ DL_BRICK_BASE
 ;	.word [GAMEOVER_LINE0+[entry*20]-2]
 ; DIAGNOSTIC ** END
 
-	; two blank scan line
-	.byte DL_BLANK_2
-	entry .= entry+$40 ; next BRICK Line.
-	.endr
-	
 	; HKernel ends:
 	; set Narrow screen, COLPF2, VSCROLL, COLPF1 for scrolling credit/prompt window.
 	; Collect HITCLR values for analysis of bricks .  Reset HITCLR.
 	
+	
 	; a scrolling window for messages and credits.  
 	; This is 8 blank lines +  8 * 10 scan lines plus 7 blank lines.
 	; These are ANTIC Mode 3 lines so each is 10 scan lines tall.
-
-
 
 
 ;===============================================================================
@@ -1220,7 +1259,8 @@ DL_BRICK_BASE
 ; ****   ****** **  **  *****
 ;===============================================================================
 
-	; Delineate end of VSCROLL area
+	; Delineate end of Bricks/VSCROLL area
+
 	.byte DL_MAP_C|DL_LMS
 	.word BRICK_LINE_MASTER 	
 
@@ -1495,7 +1535,8 @@ DL_BRICK_BASE
 ; 2 = right
 ;
 BRICK_SCREEN_LMS  
-	.byte 0,21,42
+	.byte 0,21,42,0
+	.byte 
 ;
 ; and reference HSCROL value to align the correct bytes...
 ;
@@ -1583,7 +1624,14 @@ BRICK_CURRENT_HSCROL
 ; See BRICK_LMS_OFFSETS for actual locations of LMS.
 ;
 BRICK_SCREEN_TARGET_LMS 
-	.byte 21,21,21,21,21,21,21,21
+    .byte <[BRICK_LINE0+21]
+    .byte <[BRICK_LINE1+21]
+    .byte <[BRICK_LINE2+21]
+    .byte <[BRICK_LINE3+21]
+    .byte <[BRICK_LINE4+21]
+    .byte <[BRICK_LINE5+21]
+    .byte <[BRICK_LINE6+21]
+    .byte <[BRICK_LINE7+21]
 ;
 ; Increment or decrement the movement direction? 
 ; -1=view Left/graphics right, +1=view Right/graphics left
@@ -1671,10 +1719,10 @@ TABLE_COLOR_BRICKS ; Colors for normal game bricks.
 TABLE_COLOR_GAME_OVER ; Colors for Game Over Text.
 	.byte COLOR_ORANGE1+2  ; 
 	.byte COLOR_ORANGE1+2  ; 
-	.byte COLOR_RED_ORANGE+2  ; "Orange"
-	.byte COLOR_RED_ORANGE+2  ; "Orange"
 	.byte COLOR_ORANGE2+2  ; 
 	.byte COLOR_ORANGE2+2  ; 
+	.byte COLOR_RED_ORANGE+2  ; "Orange"
+	.byte COLOR_RED_ORANGE+2  ; "Orange"
 	.byte COLOR_PINK+2        ; "Red"
 	.byte COLOR_PINK+2        ; "Red"
 
@@ -1715,21 +1763,27 @@ BRICK_LINE_TABLE_HI
 ;
 ; Base location of visible bricks (in the middle of the line)
 ;
-BRICK_BASE_LINE_TABLE_LO
-	entry .= 0
-	.rept 8 ; repeat for 8 lines
-	.byte <[BRICK_LINE0+[entry*64]+21]
-	entry .= entry+1 ; next entry in table.
-	.endr
+BRICK_CENTER_SCREEN_TABLE_LO
+	.byte <[BRICK_LINE0+23]
+	.byte <[BRICK_LINE1+23]
+	.byte <[BRICK_LINE2+23]
+	.byte <[BRICK_LINE3+23]
+	.byte <[BRICK_LINE4+23]
+	.byte <[BRICK_LINE5+23]
+	.byte <[BRICK_LINE6+23]
+	.byte <[BRICK_LINE7+23]
 	
 
 	
-BRICK_BASE_LINE_TABLE_HI
-	entry .= 0
-	.rept 8 ; repeat for 8 lines
-	.byte >[BRICK_LINE0+[entry*64]+21]
-	entry .= entry+1 ; next entry in table.
-	.endr
+BRICK_CENTER_SCREEN_TABLE_HI
+	.byte >[BRICK_LINE0+23]
+	.byte >[BRICK_LINE1+23]
+	.byte >[BRICK_LINE2+23]
+	.byte >[BRICK_LINE3+23]
+	.byte >[BRICK_LINE4+23]
+	.byte >[BRICK_LINE5+23]
+	.byte >[BRICK_LINE6+23]
+	.byte >[BRICK_LINE7+23]
 	
 ;
 ; Mask to erase an individual brick, numbered 0 to 13.
@@ -2294,7 +2348,7 @@ Do_Next_Immediate_Move
 	lda #0                           ; This is always 0, so no lookup needed.
 	sta BRICK_CURRENT_HSCROL,y       ; Set the current Hscrol for this row.
 	
-	dex
+	dey
 	bpl Do_Next_Immediate_Move
 
 	lda #0                           ; Clear the immediate move flag, and...
@@ -2322,7 +2376,6 @@ Check_Brick_Scroll
 ;	beq End_Brick_Scroll_Update
 	jmp End_Brick_Scroll_Update   ; Nothing in motion.  Skip scrolling.
 
-	
 Reset_Brick_In_Motion
 	lda #0                        ; Temporarily force indicator for no motion
 	sta BRICK_SCREEN_IN_MOTION 
@@ -2384,7 +2437,7 @@ Move_Brick_Row
 	adc #8                  ; ... to positive. (using 8, not 16 color clocks)
 	
 	inc DL_BRICK_BASE,x     ; Increment LMS to Coarse scroll view right, graphics left
-	bne Update_HScrol       ; JMP - the inc above Should always be non-zero.
+	jmp Update_HScrol       ; JMP - the inc above Should always be non-zero?
 
 ; Note that if the LMS increment above has now reached the target LMS 
 ; location the current (calculated) HSCROL in the Accumulator is valid,
@@ -2414,8 +2467,8 @@ Do_View_Scroll_Left
 ; where all values over 7 are positions in the next screen byte.
 ; Therefore, subtract 8 from the HSCROL to get to the correct position.
 	
-	cmp #7 ; if 8 or greater 
-	bcc Update_HScrol       ; No carry means Acc < 8, so no coarse scroll.
+	cmp #8 ; is less than 8 ? 
+	bcc Update_HScrol       ; No carry means Acc < 8, so no coarse scroll.???????????
 
 	sec
 	sbc #8                  ; Subtract 8 (because fine scrolling 8, not 16 color clocks)
@@ -2434,11 +2487,11 @@ Do_View_Scroll_Left
 	beq ?End_Of_Right_Scroll      ; Matching LMS means truncate HSCROL to 0
 	
 	pla                           ; LMS does not match. Get the HSCROL back.
-	bpl Update_HScrol             ; 0 to 7 is positive, Go update scroll
+	jmp Update_HScrol             ; 0 to 7 is positive, Go update scroll
 
 ?End_Of_Right_Scroll
 	pla                           ; Discard the saved HSCROL off the stack.
-	bpl Do_Finish_HScroll         ; force to 0 and update new hscrol.
+	jmp Do_Finish_HScroll         ; force to 0 and update new hscrol.
 
 ; *****************
 ; FINAL FINE SCROLL - Move View Right/screen bricks left 
@@ -2452,10 +2505,10 @@ Do_View_Scroll_Left
 	lda BRICK_CURRENT_HSCROL,y ; If this is zero then HSCROL is done.
 	beq Do_Next_Brick_Row      ; Everything matches. nothing to do.
 
-	lda BRICK_SCREEN_DIRECTION,y ; Are we going left or right?  
+	lda BRICK_SCREEN_DIRECTION,y ; -1 = view left/graphics right, +1 = view Right/graphics left 
 	bmi Do_Finish_HScroll        ; If View Left/Graphics Right, then we're done.
 	
-; Scroll View Left/screen contents right 
+; Scroll View Right/screen contents left 
 	lda BRICK_CURRENT_HSCROL,y      ; get the current Hscrol for this row.
 	sec 
 	sbc BRICK_SCREEN_HSCROL_MOVE,y  ; decrement it to move graphics left.
@@ -2890,9 +2943,9 @@ DestroyBrick
 	saveRegs ; Save regs so this is non-disruptive to caller
 
 	; Setup ZBRICK_BASE from BRICK_BASE_LINE_TABLEs
-	lda BRICK_BASE_LINE_TABLE_LO,y
+	lda BRICK_CENTER_SCREEN_TABLE_LO,y
 	sta ZBRICK_BASE 
-	lda BRICK_BASE_LINE_TABLE_HI,y
+	lda BRICK_CENTER_SCREEN_TABLE_HI,y
 	sta ZBRICK_BASE+1
 	
 	; Multiply Brick number by 4 to get correct offset into the array
@@ -2906,13 +2959,17 @@ DestroyBrick
 	
 	inx ; increment for entry 1, the first mask byte
 
+	lda #3 ; need to do loop below three times
+	sta M_TEMP1
+	
 ?Loop_NextByteMask
 	lda BRICK_MASK_TABLE,x ; Load mask
 	and (ZBRICK_BASE),y    ; AND with pixel memory
 	sta (ZBRICK_BASE),y    ; store updated pixels.
 
+	iny                    ; increment for next memory offset	
 	inx                    ; increment for next mask entry
-	cpx #4                 ; Reached the end?
+	dec M_TEMP1             ; Loop counter
 	bne ?Loop_NextByteMask ; No.  Do next byte of pixels.
 	
 	safeRTS ; restore regs for safe exit
@@ -3017,17 +3074,17 @@ MainCopyGameOver
 
 	ldx #19
 	
-?LoopCopyBitmapToScreen	
-	lda GAMEOVER_LINE0,X
+?LoopCopyGameOverToScreen	
+	lda GAMEOVER_LINE0,x
 	sta BRICK_LINE0+23,x
 
-	lda GAMEOVER_LINE1,X
+	lda GAMEOVER_LINE1,x
 	sta BRICK_LINE1+23,x
 
 	lda GAMEOVER_LINE2,X
 	sta BRICK_LINE2+23,x
 
-	lda GAMEOVER_LINE3,X
+	lda GAMEOVER_LINE3,x
 	sta BRICK_LINE3+23,x
 
 	lda GAMEOVER_LINE4,X
@@ -3043,7 +3100,7 @@ MainCopyGameOver
 	sta BRICK_LINE7+23,x
 	
 	dex
-	bpl ?LoopCopyBitmapToScreen
+	bpl ?LoopCopyGameOverToScreen
 	
 	rts
 	
@@ -3224,8 +3281,8 @@ MainSetCenterTargetScroll
 	lda TABLE_CANNED_BRICK_DIRECTIONS,y ; Get direction per canned list for the row.
 	sta BRICK_SCREEN_DIRECTION,x        ; Save direction -1, +1 for row.
 	
+	tay
 	iny                              ; Now direction is adjusted to 0, 2
-	lda BRICK_SCREEN_LMS,y           ; Get Starting LMS position per scroll direction.
 
 ; Get Starting LMS position per scroll direction.
 
@@ -3246,7 +3303,6 @@ MainSetCenterTargetScroll
 	
 	pla ; Get new LMS value back.  And store into display list.
 	
-?Update_DL_LMS
 	sta DL_BRICK_BASE,x             ; Set low byte of LMS to move row
 
 	ldx M_TEMP_PHA ; Row            ; Get the row number back.
@@ -3261,7 +3317,7 @@ MainSetCenterTargetScroll
 	
 	inx                             ; Increment to the next row.
 	cpx #8                          ; Reached the end?
-	beq End_SetCenterTargetSCroll   ; Yes. Exit.
+	beq ?End_SetCenterTargetScroll   ; Yes. Exit.
 	
 	; Not the end.  Increment everything else.
     
@@ -3271,7 +3327,7 @@ MainSetCenterTargetScroll
     
 	jmp ?InitRowPositions         ; Loop again.
 
-End_SetCenterTargetSCroll
+?End_SetCenterTargetScroll
 
 	inc BRICK_SCREEN_START_SCROLL  ; Signal VBI to start screen movement.
 	
@@ -3323,15 +3379,15 @@ MainSetClearTargetScroll
 ?InitRowPositions	
 	stx M_TEMP_PHA ; Row               ; Need to reload X later
 
-	ldy M_DIRECTION_INDEX ; Direction
-	lda TABLE_CANNED_BRICK_DIRECTIONS,y ; Get direction per canned list for the row.
-	sta BRICK_SCREEN_DIRECTION,x        ; Save direction -1, +1 for row.
-	
-	lda #0 ; This is always 0.
+    lda #0 ; This is always 0.
 	sta BRICK_CURRENT_HSCROL,x   ; Set for the current row.
 	
+	ldy M_DIRECTION_INDEX ; Direction table
+	lda TABLE_CANNED_BRICK_DIRECTIONS,y ; Get direction per canned list for the row.
+	sta BRICK_SCREEN_DIRECTION,x        ; Save direction -1, +1 for row.
+
+	tay
 	iny                              ; Now direction is adjusted to 0, 2
-	lda BRICK_SCREEN_LMS,y           ; Get Starting LMS position per scroll direction.
 
 ; moving from Center to Left or Right screens.
 
@@ -3424,7 +3480,7 @@ MainGetRandomScroll
 	bne ?SkipChooseScrollDelay   ; If Speed is not 0 then don't pick random delay.
 	
 	lda M_DIRECTION_INDEX ; Direction     ; If direction is not 00 or 08 then don't pick random delay.
-	cmp #$09
+	cmp #$08
 	bcs ?SkipChooseScrollDelay
 	
 	lda RANDOM
@@ -3488,7 +3544,6 @@ PRG_START
 ; 2) b) Wait for movement to occur:
 	
 ;	jsr WaitFrame 
-
 	
 ;===============================================================================
 ; ****   ******   **    *****
@@ -3498,13 +3553,24 @@ PRG_START
 ; ** **    **   ****** **  **
 ; ****   ****** **  **  *****
 ;===============================================================================
+
+; 10 second delay on startup just to give me 
+; time to start the screen recording.
+
+	ldx #240
+	jsr WaitFrames
+	ldx #240
+	jsr WaitFrames
+	ldx #240
+	jsr WaitFrames
+	
 	
 FOREVER
 
 ; ***************
 ; TITLE 
 ; ***************
-	
+		
 ; 3) a) Load BREAKOUT graphics to off screen (which is currently center/screen 2) 
 ; 3) b) load breakout color table
 
@@ -3578,7 +3644,7 @@ FOREVER
 ; 14) c) Pause to show brick deletion progress.
 ; 14) d) continue loop.
 
-	jsr Diag_DestroyBricks ; 14a through 14d
+	jsr Diag_DestroyBricks1 ; 14a through 14d
 
 ; 15) a) Set random destination to clear screens (left/screen 1 and right/screen 3)
 ; 15) b) immediate/force all disply LMS to off screen (left/screen 1 postition) 
@@ -3588,7 +3654,7 @@ FOREVER
 	; set the VBI Immediate move flag ASAP, before VBI can start moving...
 	lda #1
 	sta BRICK_SCREEN_IMMEDIATE_POSITION
-
+	
 ; 15) c) wait for movement to occur:
 
 	jsr WaitForScroll ; This does 15c.
@@ -3626,7 +3692,7 @@ FOREVER
 ; 22) c) Pause to show brick deletion progress.
 ; 23) d) continue loop.
 
-	jsr Diag_DestroyBricks ; 20a through 20d
+	jsr Diag_DestroyBricks2 ; 20a through 20d
 	
 ; 21) a) Set random destination to clear screens (left/screen 1 and right/screen 3)
 ; 21) b) immediate/force all disply LMS to off screen (left/screen 1 postition) 
@@ -3995,7 +4061,7 @@ skip_29secTick
 	
 	mDebugByte M_SPEED_INDEX,        35 ; SP eed
 	
-	mDebugByte M_DIRECTION_INDEX,        38 ; DI rection
+	mDebugByte M_DIRECTION_INDEX,     38 ; DI rection
 	
 
 ;===============================================================================
@@ -4126,7 +4192,7 @@ WaitForScroll
 ; BALL_XPOS_TO_BRICK_TABLE and BALL_YPOS_TO_BRICK_TABLE.
 ;===============================================================================
 
-Diag_DestroyBricks
+Diag_DestroyBricks1
 
 	ldx #13 ; Bricks in the row. 13 to 0
 
@@ -4139,7 +4205,7 @@ Diag_DestroyBricks
 	jsr DestroyBrick ; Remove Brick at X, Y position
 	
 	txa              ; save brick number temporarily.
-	ldx #10       
+	ldx #3   
 	jsr WaitFrames   ; Pause for X frames
 	tax              ; get Brick number back.
 	
@@ -4147,7 +4213,35 @@ Diag_DestroyBricks
 	bpl ?Next_Row    ; Rows 7 to 0
 
 	dex
-	bpl ?Next_Brick  ; Bricks 13 to 0		
+	bpl ?Next_Brick  ; Bricks 13 to 0	
+
+	rts
+
+.local
+Diag_DestroyBricks2
+
+	ldy #0 ; Number of rows,  0 to 7
+
+?Next_Row
+
+	ldx #0 ; Bricks in the row. 0 to 13
+
+?Next_Brick
+
+	jsr DestroyBrick ; Remove Brick at X, Y position
+	
+	txa              ; save brick number temporarily.
+	ldx #2   
+	jsr WaitFrames   ; Pause for X frames
+	tax              ; get Brick number back.
+	
+	inx
+	cpx #14
+	bne ?Next_Brick  ; Bricks 0 to 13	
+
+	iny
+	cpy #8
+	bne ?Next_Row    ; Rows 0 to 7
 
 	rts
 
