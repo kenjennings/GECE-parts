@@ -3748,11 +3748,6 @@ FOREVER
 ; 29) Clear center screen
 
 	jsr MainClearCenterScreen ; and 29.
-
-; 30) Pause 2 seconds/120 frames
-
-	ldx #120
-	jsr WaitFrames
 	
 ;	jsr WaitFrame ; Wait for VBI to run.
 
