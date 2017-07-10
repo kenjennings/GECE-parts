@@ -79,3 +79,26 @@ This VSCROLL abuse provides a number of benefits:
 2) There is only one line of graphics to manage for each row.  Manipulate one row of data, and all five scan lines show the change.
 3) There is only one LMS address to modify to scroll the graphics.   When horizontal scrolling is added to the graphics only one LMS address per row needs to be updated for the coarse scroll. (8 total)  Using separate LMS instructions to build bricks 5 scan lines tall would look the same, but require five LMS address updates per row (40 total!) to accomplish horizontal coarse scrolling.
 
+
+
+
+=============================================================
+
+Breakout Bricks Playfield Scrolling
+
+=============================================================
+
+[![BricksScrollScreenGrab](https://github.com/kenjennings/GECE-parts/blob/master/parts-bricks-scroll-pic.png)](#features)
+ 
+Video Here: https://youtu.be/K__BENVv9AQ
+
+This is the next increment in playfield management in the breakout game.   Each of the bricks' rows can be controlled to scroll left or right independently at different speeds.  This demo shows scrolling transitions from the Breakout title screen, to a playfield of bricks, to a Game Over screen.  It also demonstrates the brick bitmap masking/removal works as expected.
+
+The scrolling transitions have several variables chosen at random:  
+*The direction may be left or right. 
+*A varible delay may be added to each line before scrolling begins.  
+*The speed may vary from 1 to 4 color clocks per frame.
+
+The program includes several canned patterns for scrolling.  The speed of the bottom line in all patterns has no starting delay and always scrolls 4 pixels per frame to insure the new bottom row is correctly in place before the ball returns to strike a brick.
+
+
