@@ -166,35 +166,32 @@ PADDLE_MAX = (PLAYFIELD_RIGHT_EDGE_NORMAL-PLAYFIELD_LEFT_EDGE_NORMAL-11)
 ; Essentially, think of these as extra data registers.
 ;
 ; Also used as permanent variables with lower latency than regular memory.
-
+;
 ; The Atari OS has defined purpose for the first half of Page Zero 
 ; locations.  Since no Floating Point will be used here we'll 
-; borrow the FP registers in Page Zero.
-
+; borrow everything in the second half of Page Zero.
+;
+;===============================================================================
+;
 ; This list is a disorganized, royal mess.  Next time don't start 
 ; with the page zero list allowed for BASIC.  Just start at $80 and 
 ; run straight until $FF.
 ;
-PARAM_00 = $D4 ; ZMR_ROBOTO  -- Is Mr Roboto playing the automatic demo mode? init 1/yes
-PARAM_01 = $D6 ; ZDIR_X      -- +1 Right, -1 Left.  Indicates direction of travel.
-PARAM_02 = $D7 ; ZDIR_Y      -- +1 Down, -1 Up.  Indicates direction of travel.
-
-; Due to need for more sequential pointers these values 
-; are  moved elsewhere...
-;
-; PARAM_03 = $D8 ; ZCOLLISION  -- Is Brick present at tested location? 0 = no, 1 = yes
-; PARAM_04 = $D9 ; ZBRICK_LINE -- coord_Y reduced to line 1-8
-; PARAM_05 = $DA ; ZBRICK_COL  -- coord_X reduced to brick number 1-14
-; PARAM_06 = $DB ; ZCOORD_Y    -- coord_Y for collision check
-; PARAM_07 = $DC ; ZCOORD_X    -- coord_X for collision check  
-; PARAM_08 = $DD ;   
-;
-; And more Zero Page fun.  This is assembly, dude.  No BASIC in sight anywhere.
+; Zero Page fun.  This is assembly, dude.  No BASIC in sight anywhere.
 ; No BASIC means we can get craaaazy with the second half of Page Zero.
 ;
 ; In fact, there's no need to have the regular game variables out in high memory.  
 ; All the Byte-sized values are hereby moved to Page 0.
 ;
+;===============================================================================
+
+PARAM_00 = $D4 ; ZMR_ROBOTO  -- Is Mr Roboto playing the automatic demo mode? init 1/yes
+PARAM_01 = $D6 ; ZDIR_X      -- +1 Right, -1 Left.  Indicates direction of travel.
+PARAM_02 = $D7 ; ZDIR_Y      -- +1 Down, -1 Up.  Indicates direction of travel.
+
+PARAM_06 = $DC ; V_TEMP_ROW   -- VBI: Temporary Boom Block Row
+PARAM_07 = $DD ; V_TEMP_CYCLE -- VBI: Temporary Boom Block Cycle
+
 PARAM_09 = $80 ; TITLE_STOP_GO - set by mainline to indicate title is working or not.
 
 PARAM_10 = $81 ; TITLE_PLAYING - flag indicates title animation stage in progress. 
@@ -299,14 +296,13 @@ PARAM_96 = $DA ; MAIN: Delay Index
 PARAM_97 = $DB ; MAIN: Temporary SAVE/PHA
 
 
-ZEROPAGE_POINTER_0 = $DC ; ZROW_LMS0     -- Pointer to display list LMS brick row 0
-ZEROPAGE_POINTER_1 = $DE ; ZROW_LMS1     -- Pointer to display list LMS brick row 1
-ZEROPAGE_POINTER_2 = $E0 ; ZROW_LMS2     -- Pointer to display list LMS brick row 2
-ZEROPAGE_POINTER_3 = $E2 ; ZROW_LMS3     -- Pointer to display list LMS brick row 3
-ZEROPAGE_POINTER_4 = $E4 ; ZROW_LMS4     -- Pointer to display list LMS brick row 4
-ZEROPAGE_POINTER_5 = $E6 ; ZROW_LMS5     -- Pointer to display list LMS brick row 5
-ZEROPAGE_POINTER_6 = $E8 ; ZROW_LMS6     -- Pointer to display list LMS brick row 6
-ZEROPAGE_POINTER_7 = $EA ; ZROW_LMS7     -- Pointer to display list LMS brick row 7
+ZEROPAGE_POINTER_1 = $DE ; 
+ZEROPAGE_POINTER_2 = $E0 ;
+ZEROPAGE_POINTER_3 = $E2 ; 
+ZEROPAGE_POINTER_4 = $E4 ; 
+ZEROPAGE_POINTER_5 = $E6 ;
+ZEROPAGE_POINTER_6 = $E8 ;
+ZEROPAGE_POINTER_7 = $EA ; ZTEMP_PMADR   -- VBI uses for boom block image target 
 ZEROPAGE_POINTER_8 = $EC ; ZBRICK_BASE   -- Pointer to start of bricks on a line.
 ZEROPAGE_POINTER_9 = $EE ; ZTITLE_COLPM0 -- VBI sets for DLI to use
 
@@ -347,10 +343,16 @@ ZBRICK_POINTS = PARAM_78 ; .byte $00
 ZBALL_COUNT =   PARAM_79 ; .byte $05
 
 
+ZTEMP_PMADR =   ZEROPAGE_POINTER_7 ; $EA - VBI uses for boom block image target 
+
 ZBRICK_BASE =   ZEROPAGE_POINTER_8 ; $EC - Pointer to start of bricks on a line.
 
 ZTITLE_COLPM0 = ZEROPAGE_POINTER_9 ; $EE - VBI sets for DLI to use
 
+
+
+V_TEMP_ROW =   PARAM_06 ; = $DC ; -- VBI: Temporary Boom Block Row
+V_TEMP_CYCLE = PARAM_07 ; = $DD ; -- VBI: Temporary Boom Block Cycle
 
 
 
@@ -2342,7 +2344,7 @@ End_Thumper_Bumper_VBI
 	ldy #7
 
 Do_Next_Immediate_Move
-	ldx BRICK_LMS_OFFSETS,y  ; X = LMS low byte for current row in the Display List
+	ldx BRICK_LMS_OFFSETS,y          ; X = LMS low byte for current row in the Display List
 	lda BRICK_SCREEN_TARGET_LMS,y    ; Get the LMS destination position.
 	sta DL_BRICK_BASE,x              ; Set the new Display List LMS pointer.
 	lda #0                           ; This is always 0, so no lookup needed.
@@ -2363,12 +2365,12 @@ Do_Next_Immediate_Move
 Fine_Scroll_Display   
 	lda BRICK_SCREEN_START_SCROLL ; MAIN says to start scrolling?
 	beq Check_Brick_Scroll        ; No?  So, is a Scroll already running?
-	; If a scroll is already in progress when MAIN toggles
-	; the BRICK_SCREEN_START_SCROLL flag it really has no effect.
+	; If a scroll is already in progress when MAIN toggles the
+	; BRICK_SCREEN_START_SCROLL flag it has no effect.
 	; The current scroll keeps on scrolling.
 	lda #0
 	sta BRICK_SCREEN_START_SCROLL ; Turn off MAIN request.
-	inc BRICK_SCREEN_IN_MOTION    ; Temporarily flag Scroll in progress.
+	inc BRICK_SCREEN_IN_MOTION    ; Raise flag for Scroll in progress to trick next evaluation.
 
 Check_Brick_Scroll
 	lda BRICK_SCREEN_IN_MOTION    ; Is the screen in motion?
@@ -2418,11 +2420,12 @@ Move_Brick_Row
 ; *****************
 
 	lda BRICK_CURRENT_HSCROL,y      ; get the current Hscrol for this row.
+	
 	sec
 	sbc BRICK_SCREEN_HSCROL_MOVE,y  ; decrement Hscrol to move graphics left.
 
 ; Remember that LMS+1, HSCROL 8 is the same result as LMS+0, HSCROL 0.
-; Therefore, HSCROL cannot reach 8.  It must "wrap" at 7 to force coarse 
+; Therefore, HSCROL cannot reach 8.  It must "wrap" after 7 to force coarse 
 ; scroll to make the motion fliud.
 
 ; Assuming HSCROL starts from 0 to 7 and the HSCROL adjustment may 
@@ -2454,11 +2457,12 @@ Move_Brick_Row
 
 Do_View_Scroll_Left	    
 	lda BRICK_CURRENT_HSCROL,y      ; get the current Hscrol for this row.
+	
 	clc
 	adc BRICK_SCREEN_HSCROL_MOVE,y  ; increment Hscrol to move graphics right.
 
 ; Remember that LMS+1, HSCROL 8 is the same result as LMS+0, HSCROL 0.
-; Therefore, HSCROL cannot reach 8.  It must "wrap" at 7 to force coarse 
+; Therefore, HSCROL cannot reach 8.  It must "wrap" after 7 to force coarse 
 ; scroll to make the motion fliud.
 
 ; Assuming HSCROL starts from 0 to 7 and the HSCROL adjustment may 
@@ -2510,8 +2514,10 @@ Do_View_Scroll_Left
 	
 ; Scroll View Right/screen contents left 
 	lda BRICK_CURRENT_HSCROL,y      ; get the current Hscrol for this row.
+	
 	sec 
 	sbc BRICK_SCREEN_HSCROL_MOVE,y  ; decrement it to move graphics left.
+
 	bpl Update_HScrol               ; If positive, then no forced (re)adjustment.
 
 ; The new HSCROL went negative, therefore the
@@ -2538,8 +2544,206 @@ Do_Next_Brick_Row
 End_Brick_Scroll_Update
 
 
+
+;===============================================================================
+; BOOM-O-MATIC
+;===============================================================================
+; Players 1 and 2 implement a Boom animation for bricks knocked out.
+; The animation overlays the destroyed brick with a rectangle two scan 
+; lines taller and and two color clocks wider than the brick.  This is 
+; centered on the brick providing a first frame impression that the brick 
+; expands. On subsequent frames the image shrinks and color fades. 
+;
+; A DLI cuts these two players' HPOS for each line of bricks, so there are 
+; two separate Boom-o-matics possible for each line.   Realistically, 
+; given the ball motion and collision policy it is impossible to request 
+; two Boom cycles begin on the same frame for the same row, and would be 
+; unlikely to have multiple animations running on every line. (But, just
+; in case the code plans for the worst.)
+;
+; When MAIN code detects collision it will generate a request for a Boom-O-Matic
+; animation that VBI will service.  VBI will determine if the request is for
+; Boom 1 or Boom 2 .  If both animation cycles are in progress the one with the
+; most progress will reset itself for the new animation.
+;
+; Side note -- maybe a future iteration will utilize the boom-o-matic blocks 
+; during Title or Game Over sequences.
+
+;
+; First, is boom enabled?
+;
+	lda ENABLE_BOOM
+	bne Add_New_Boom
+	; No boom. MAIN should have zero'd all HPOS and animation states.
+	jmp End_Boom_O_Matic
+
+	; NEW RULES FOR NEW BOOM.   
+	; The code was becoming stupidly insane.  There are now limits on behavior.
+	;
+	; MAIN must set request 1 first, so there will be no situation 
+	; when request 1 is not set and request 2 is set.
+	; Boom cycles are always set in order 1, then 2.
+	; Therefore, when adding a new cycle the current 
+	; state of Boom 1 is copied to Boom 2 and the new Boom
+	; is inserted in Boom 1.  This simplifies the madness.
+
+Add_New_Boom ; Add any new requests to the lists.
+	ldx #7 
+
+New_Boom_Loop
+	lda BOOM_1_REQUEST,x ; is request flag set?
+	beq Next_Boom_Test ; no, therefore 2 is not set either.
+	lda BOOM_1_CYCLE,x ; If this is 0 then use it.
+	beq Assign_Boom_1
+	; Boom 1 already in use.
+	; First Move Boom 1 state to Boom 2.
+	jsr Push_Boom_1_To_Boom_2
+	
+	; Assign request 1 to Boom 1.
+Assign_Boom_1
+	lda BOOM_1_REQUEST_BRICK,x ; Get requested brick, 0 to 13
+	sta BOOM_1_BRICK,x         ; assign to current animation
+	lda #1                     ; set first frame of animation
+	sta BOOM_1_CYCLE,x
+
+	; Try assigning new request 2.
+Try_New_Boom_2
+	lda BOOM_2_REQUEST,x ; is request flag set?
+	beq Next_Boom_Test ; no, therefore, done adding boom for this row.
+	; Do not need to test the cycle, since if we got 
+	; here Request 1 was already assigned to Boom 1.
+	; So, push current Boom 1 to Boom 2.
+	jsr Push_Boom_1_To_Boom_2
+	; Assign request 2 to Boom 1.
+	lda BOOM_2_REQUEST_BRICK,x ; Get requested brick, 0 to 13
+	sta BOOM_1_BRICK,x         ; assign to current animation
+	lda #1                     ; set first frame of animation
+	sta BOOM_1_CYCLE,x
+
+Next_Boom_Test
+	dex
+	bpl New_Boom_Loop
+	
+; Next walk through the current Boom cycles, do the 
+; animation changes and update the values.
+Animate_Boom_O_Matic
+	ldx #7 
+
+New_Boom_Animation_Loop
+	ldy BOOM_1_CYCLE,x   ; If this is not zero, 
+	bne Boom_Animation_1 ; then animate it.
+	; if cycle is 0 it could be because the last frame
+	; reached the end of animation.  
+	lda #0               ; Force HPOS 0, just in case.
+	sta BOOM_1_HPOS,x
+	sta BOOM_2_HPOS,x
+	beq Next_Boom_Animation
+
+Boom_Animation_1
+	dey                   ; makes cycle 1 - 9 easier to lookup as 0 - 8
+	sty V_TEMP_CYCLE      ; Save Cycle
+	stx V_TEMP_ROW        ; Save Row
+
+	lda BOOM_CYCLE_SIZE,y ; Get P/M Horizontal Size for this cycle
+	sta BOOM_1_SIZE,y     ; Set size.
+
+	; P/M position varies by brick, and by cycle.
+	ldy BOOM_1_BRICK,x          ; Get Brick
+	lda BRICK_XPOS_LEFT_TABLE,y ; get brick HPOS
+	ldy V_TEMP_CYCLE            ; get current cycle.
+	clc
+	adc BOOM_CYCLE_HPOS,y       ; adjust HPOS by the current cycle.
+	sta BOOM_1_HPOS,x
+	
+	; P/M Color is based on row and by cycle.
+	; Multiply row times 9 in offset table, then add row to get entry.
+	ldy BOOM_CYCLE_OFFSET,x
+	lda BOOM_CYCLE_COLOR,y
+	sta BOOM_1_COLPM,x
+	
+	; Last: copy 7 bytes of P/M image data to correct Y pos.
+	; Convert row to P/M ypos.
+	; multiply cycle times 9.
+	; copy 7 bytes from table to p/m base.
+	ldy BRICK_YPOS_TOP_TABLE,x ; Get scan line of top of brick.
+	dey                        ; -1.  one line higher for exploding brick.
+	sta ZTEMP_PMADR            ; low byte for player/missile address. 
+	lda #>PMADR_BASE1          ; Player 1 Base,  
+	sta ZTEMP_PMADR+1          ; high byte.
+	
+	lda BOOM_CYCLE_OFFSET,x    ; Get Starting offset for animation for this frame
+	tax
+	ldy #$00
+	
+Loop_Copy_PM_1_Boom
+	lda BOOM_ANIMATION_FRAMES,x ; Read from animation table
+	sta (ZTEMP_PMADR),y         ; Store in Player memory
+	inx                         ; increment... to next byte
+	iny
+	cpy #7                      ; stop at 7 bytes.
+	bne Loop_Copy_PM_1_Boom
+
+	; Boom 1 is done.
+	; Now try Boom 2.
+	;
+	ldx V_TEMP_ROW  	 ; Get the real row back.
+
+	ldy BOOM_2_CYCLE,x   ; If this is not zero, 
+	bne Boom_Animation_2 ; then animate it.
+	beq Next_Boom_Animation
+
+Boom_Animation_2
+	dey                     ; makes cycle 1 - 9 easier to lookup as 0 - 8
+	sty V_TEMP_CYCLE        ; Save Cycle
+
+	lda BOOM_CYCLE_SIZE,y   ; Get P/M Horizontal Size for this cycle
+	sta BOOM_2_SIZE,y       ; Set size.
+
+	; P/M position varies by brick, and by cycle.
+	ldy BOOM_2_BRICK,x          ; Get Brick
+	lda BRICK_XPOS_LEFT_TABLE,y ; get brick HPOS
+	ldy V_TEMP_CYCLE            ; get current cycle.
+	clc
+	adc BOOM_CYCLE_HPOS,y       ; adjust HPOS by the current cycle.
+	sta BOOM_2_HPOS,x
+	
+	; P/M Color is based on row and by cycle.
+	; Multiply row times 9 in offset table, then add row to get entry.
+	ldy BOOM_CYCLE_OFFSET,x
+	lda BOOM_CYCLE_COLOR,y
+	sta BOOM_2_COLPM,x
+	
+	; Last: copy 7 bytes of P/M image to correct Y pos.
+	; Convert row to P/M ypos.
+	; multiply cycle times 9.
+	; copy 7 bytes from table to p/m base.
+	ldy BRICK_YPOS_TOP_TABLE,x ; Get scan line of top of brick.
+	dey                        ; -1.  one line higher for exploding brick.
+	sta ZTEMP_PMADR            ; low byte for player/missile address. 
+	lda #>PMADR_BASE2          ; Player 2 Base,  
+	sta ZTEMP_PMADR+1          ; high byte.
+	
+	lda BOOM_CYCLE_OFFSET,x    ; Get Starting offset for animation for this frame
+	tax
+	ldy #$00
+	
+Loop_Copy_PM_2_Boom
+	lda BOOM_ANIMATION_FRAMES,x ; Read from animation table
+	sta (ZTEMP_PMADR),y         ; Store in Player memory
+	inx                         ; increment... to next byte
+	iny
+	cpy #7                      ; stop at 7 bytes.
+	bne Loop_Copy_PM_2_Boom
+
+Next_Boom_Animation
+	dex
+	bpl New_Boom_Animation_Loop
+
+End_Boom_O_Matic
+
 	
 	
+
 	
 	
 	
@@ -2554,8 +2758,24 @@ Exit_VBI
 	jmp XITVBV
 
 
+
 	
 
+;=============================================
+; Push the current state of Boom 1 to Boom 2.
+; X = current row.
+Push_Boom_1_To_Boom_2
+	lda BOOM_1_BRICK,x
+	sta BOOM_2_BRICK,x
+	lda BOOM_1_CYCLE,x
+	sta BOOM_2_CYCLE_x
+
+	rts
+
+
+	
+	
+	
 	
 
 ;	.include "dli.asm"
@@ -3557,12 +3777,12 @@ PRG_START
 ; 10 second delay on startup just to give me 
 ; time to start the screen recording.
 
-	ldx #240
-	jsr WaitFrames
-	ldx #240
-	jsr WaitFrames
-	ldx #240
-	jsr WaitFrames
+;	ldx #240
+;	jsr WaitFrames
+;	ldx #240
+;	jsr WaitFrames
+;	ldx #240
+;	jsr WaitFrames
 	
 	
 FOREVER
@@ -3577,22 +3797,22 @@ FOREVER
 ; In final version code may need to verify current scanline 
 ; VCOUNT value is below the playfield before doing the copy.
 
-	jsr MainCopyLogo ; This does 3a and 3b.
+;	jsr MainCopyLogo ; This does 3a and 3b.
 	
 ; 4) Set new random Start positions for left/right scroll, Signal start scroll
 ; 5) a) Signal start Scroll to the VBI
 
-	jsr MainSetCenterTargetScroll ; This does 4 and 5a.
+;	jsr MainSetCenterTargetScroll ; This does 4 and 5a.
 
 ; 5) b) Wait for next frame.
 ; 5) c) wait until scroll movement completes
 
-	jsr WaitForScroll ; This does 5b and 5c.
+;	jsr WaitForScroll ; This does 5b and 5c.
 	
 ; 6) Pause 2 seconds/120 frames
 
-	ldx #120
-	jsr WaitFrames
+;	ldx #120
+;	jsr WaitFrames
 
 ; ***************
 ; CLEAR TITLE     
@@ -3603,6 +3823,11 @@ FOREVER
 
 	jsr MainSetClearTargetScroll ; this does 7 and 8a.
 
+	; set the VBI Immediate move flag ASAP, before VBI can start moving...
+	lda #1
+	sta BRICK_SCREEN_IMMEDIATE_POSITION
+	
+	
 ; 8) b) Wait for frame.
 ; 8) c) wait until scroll movement completes
 
@@ -3939,124 +4164,27 @@ skip_29secTick
 
 ;	.sbyte " JF SS SI VM  H0 1 2 3 4 5 6 7  DE SP DI"
 
+;	.sbyte " JF EB    RQ    RB CY BB HP SZ CP       "
 	
-	mDebugByte RTCLOK60,                         1 ; JF
+	mDebugByte RTCLOK60,              1 ; JF
 	
-	mDebugByte BRICK_SCREEN_START_SCROLL,        4 ; SS
+	mDebugByte ENABLE_BOOM,           4 ; EB
 
-	mDebugByte BRICK_SCREEN_IMMEDIATE_POSITION,  7 ; SI
+	mDebugByte BOOM_1_REQUEST,       10 ; RQ
 	
-	mDebugByte BRICK_SCREEN_IN_MOTION,          10 ; VM
+	mDebugByte BOOM_1_REQUEST_BRICK, 16 ; RB
 
+	mDebugByte BOOM_1_CYCLE,         19 ; CY
 
-;	mDebugByte BRICK_CURRENT_HSCROL+0,        14 ; H0
-	
-;	mDebugByte BRICK_CURRENT_HSCROL+1,        16 ; H1
-	
-;	mDebugByte BRICK_CURRENT_HSCROL+2,        18 ; H2
-	
-;	mDebugByte BRICK_CURRENT_HSCROL+3,        20 ; H3
-	
-;	mDebugByte BRICK_CURRENT_HSCROL+4,        22 ; H4
+	mDebugByte BOOM_1_BRICK,         21 ; BB
 
-;	mDebugByte BRICK_CURRENT_HSCROL+5,        24 ; H5
-	
-;	mDebugByte BRICK_CURRENT_HSCROL+6,        26 ; H6
+	mDebugByte BOOM_1_HPOS,          24 ; HP
 
-;	mDebugByte BRICK_CURRENT_HSCROL+7,        28 ; H7
+	mDebugByte BOOM_1_SIZE,          27 ; SZ
+
+	mDebugByte BOOM_1_COLPM,         30 ; CP
 
 
-
-	mDebugByte DL_BRICK_BASE+1,        14 ; H0
-	
-	mDebugByte DL_BRICK_BASE+5,        16 ; H1
-	
-	mDebugByte DL_BRICK_BASE+9,        18 ; H2
-	
-	mDebugByte DL_BRICK_BASE+13,        20 ; H3
-	
-	mDebugByte DL_BRICK_BASE+17,        22 ; H4
-
-	mDebugByte DL_BRICK_BASE+21,        24 ; H5
-	
-	mDebugByte DL_BRICK_BASE+25,        26 ; H6
-
-	mDebugByte DL_BRICK_BASE+29,        28 ; H7
-
-	
-;	mDebugByte BRICK_SCREEN_TARGET_LMS+0,        14 ; H0
-	
-;	mDebugByte BRICK_SCREEN_TARGET_LMS+1,        16 ; H1
-	
-;	mDebugByte BRICK_SCREEN_TARGET_LMS+2,        18 ; H2
-	
-;	mDebugByte BRICK_SCREEN_TARGET_LMS+3,        20 ; H3
-	
-;	mDebugByte BRICK_SCREEN_TARGET_LMS+4,        22 ; H4
-
-;	mDebugByte BRICK_SCREEN_TARGET_LMS+5,        24 ; H5
-	
-;	mDebugByte BRICK_SCREEN_TARGET_LMS+6,        26 ; H6
-
-;	mDebugByte BRICK_SCREEN_TARGET_LMS+7,        28 ; H7
-
-
-;	mDebugByte BRICK_SCREEN_DIRECTION+0,        14 ; H0
-	
-;	mDebugByte BRICK_SCREEN_DIRECTION+1,        16 ; H1
-	
-;	mDebugByte BRICK_SCREEN_DIRECTION+2,        18 ; H2
-	
-;	mDebugByte BRICK_SCREEN_DIRECTION+3,        20 ; H3
-	
-;	mDebugByte BRICK_SCREEN_DIRECTION+4,        22 ; H4
-
-;	mDebugByte BRICK_SCREEN_DIRECTION+5,        24 ; H5
-	
-;	mDebugByte BRICK_SCREEN_DIRECTION+6,        26 ; H6
-
-;	mDebugByte BRICK_SCREEN_DIRECTION+7,        28 ; H7
-
-
-;	mDebugByte BRICK_SCREEN_HSCROL_MOVE+0,        14 ; H0
-	
-;	mDebugByte BRICK_SCREEN_HSCROL_MOVE+1,        16 ; H1
-	
-;	mDebugByte BRICK_SCREEN_HSCROL_MOVE+2,        18 ; H2
-	
-;	mDebugByte BRICK_SCREEN_HSCROL_MOVE+3,        20 ; H3
-	
-;	mDebugByte BRICK_SCREEN_HSCROL_MOVE+4,        22 ; H4
-
-;	mDebugByte BRICK_SCREEN_HSCROL_MOVE+5,        24 ; H5
-	
-;	mDebugByte BRICK_SCREEN_HSCROL_MOVE+6,        26 ; H6
-
-;	mDebugByte BRICK_SCREEN_HSCROL_MOVE+7,        28 ; H7
-
-
-;	mDebugByte BRICK_SCREEN_MOVE_DELAY+0,        14 ; H0
-	
-;	mDebugByte BRICK_SCREEN_MOVE_DELAY+1,        16 ; H1
-	
-;	mDebugByte BRICK_SCREEN_MOVE_DELAY+2,        18 ; H2
-	
-;	mDebugByte BRICK_SCREEN_MOVE_DELAY+3,        20 ; H3
-	
-;	mDebugByte BRICK_SCREEN_MOVE_DELAY+4,        22 ; H4
-
-;	mDebugByte BRICK_SCREEN_MOVE_DELAY+5,        24 ; H5
-	
-;	mDebugByte BRICK_SCREEN_MOVE_DELAY+6,        26 ; H6
-
-;	mDebugByte BRICK_SCREEN_MOVE_DELAY+7,        28 ; H7
-
-
-	mDebugByte M_DELAY_INDEX,        32 ; DE lay
-	
-	mDebugByte M_SPEED_INDEX,        35 ; SP eed
-	
-	mDebugByte M_DIRECTION_INDEX,     38 ; DI rection
 	
 
 ;===============================================================================
