@@ -90,7 +90,7 @@ Breakout Bricks Playfield Scrolling
 
 [![BricksScrollScreenGrab](https://github.com/kenjennings/GECE-parts/blob/master/parts-bricks-scroll-pic.png)](#features)
  
-Video Here: https://youtu.be/K__BENVv9AQ
+Video Here: https://youtu.be/kLrhFrXUn2U
 
 This is the next increment in playfield management in the breakout game.   Each of the bricks' rows can be controlled to scroll left or right independently at different speeds.  This demo shows scrolling transitions from the Breakout title screen, to a playfield of bricks, to a Game Over screen.  It also demonstrates the brick bitmap masking/removal works as expected.
 
