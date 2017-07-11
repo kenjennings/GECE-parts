@@ -20,7 +20,7 @@
 ; Written by Ken Jennings
 ; Build for Atari using eclipse/wudsn/atasm on linux
 ; Source at:
-; Github: https://github.com/kenjennings/Breakout-GECE-for-Atari
+; Github: https://github.com/kenjennings/Atari-Breakout-GECE
 ; Google Drive: https://drive.google.com/drive/folders/
 ;===============================================================================
 
