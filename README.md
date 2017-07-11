@@ -96,7 +96,7 @@ This is the next increment in playfield management in the breakout game.   Each 
 
 The scrolling transitions have several variables chosen at random:  
 
-* A varible delay may be added to each line before scrolling begins.
+* A variable delay may be added to each line before scrolling begins.
 
 * The direction may be left or right.
 
