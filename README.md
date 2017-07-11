@@ -101,4 +101,7 @@ The scrolling transitions have several variables chosen at random:
 
 The program includes several canned patterns for scrolling.  The speed of the bottom line in all patterns has no starting delay and always scrolls 4 pixels per frame to insure the new bottom row is correctly in place before the ball returns to strike a brick.
 
+The horizontal lines appearing above and below the bricks are part of the debugging/diagnostics to insure the playfield begins and ends at the correct lines on the screen.  They will not appear in the finished game, of course.
+
+
 
