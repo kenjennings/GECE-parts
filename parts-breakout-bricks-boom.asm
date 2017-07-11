@@ -2011,15 +2011,12 @@ GAMEOVER_LINE_TABLE_HI
 ENABLE_BOOM = PARAM_38
 ; .byte 0
 
-BOOM_1_REQUEST 
+BOOM_REQUEST 
 	.byte 0,0,0,0,0,0,0,0 ; MAIN provides flag to add this brick. 0 = no brick. 1 = new brick.
-BOOM_2_REQUEST 
-	.byte 0,0,0,0,0,0,0,0 ; MAIN provides flag to add this brick.
 
-BOOM_1_REQUEST_BRICK 
+BOOM_REQUEST_BRICK 
 	.byte 0,0,0,0,0,0,0,0 ; MAIN provides brick number in this row. 0 - 13
-BOOM_2_REQUEST_BRICK 
-	.byte 0,0,0,0,0,0,0,0 ; MAIN provides brick number in this row. 0 - 13
+
 
 BOOM_1_CYCLE 
 	.byte 0,0,0,0,0,0,0,0 ; VBI needs one for each row (0 = no animation)
@@ -2046,27 +2043,6 @@ BOOM_1_COLPM
 BOOM_2_COLPM 
 	.byte 0,0,0,0,0,0,0,0 ; DLI needs P/M COLPM2 for row
 
-BOOM_CYCLE_COLOR ; by row by cycle frame -- 9 frames per boom animation
-	.byte $0E,COLOR_PINK|$0E,         COLOR_PINK|$0C,         COLOR_PINK|$0A,         COLOR_PINK|$08,         COLOR_PINK|$06,         COLOR_PINK|$04,        $02,$00
-	.byte $0E,COLOR_PURPLE|$0E,       COLOR_PURPLE|$0C,       COLOR_PURPLE|$0A,       COLOR_PURPLE|$08,       COLOR_PURPLE|$06,       COLOR_PURPLE|$04,      $02,$00
-	.byte $0E,COLOR_RED_ORANGE|$0E,   COLOR_RED_ORANGE|$0C,   COLOR_RED_ORANGE|$0A,   COLOR_RED_ORANGE|$08,   COLOR_RED_ORANGE|$06,   COLOR_RED_ORANGE|$04,  $02,$00
-	.byte $0E,COLOR_ORANGE2|$0E,      COLOR_ORANGE2|$0C,      COLOR_ORANGE2|$0A,      COLOR_ORANGE2|$08,      COLOR_ORANGE2|$06,      COLOR_ORANGE2|$04,     $02,$00
-	.byte $0E,COLOR_GREEN|$0E,        COLOR_GREEN|$0C,        COLOR_GREEN|$0A,        COLOR_GREEN|$08,        COLOR_GREEN|$06,        COLOR_GREEN|$04,       $02,$00
-	.byte $0E,COLOR_BLUE_GREEN|$0E,   COLOR_BLUE_GREEN|$0C,   COLOR_BLUE_GREEN|$0A,   COLOR_BLUE_GREEN|$08,   COLOR_BLUE_GREEN|$06,   COLOR_BLUE_GREEN|$04,  $02,$00
-	.byte $0E,COLOR_LITE_ORANGE|$0E,  COLOR_LITE_ORANGE|$0C,  COLOR_LITE_ORANGE|$0A,  COLOR_LITE_ORANGE|$08,  COLOR_LITE_ORANGE|$06,  COLOR_LITE_ORANGE|$04, $02,$00
-	.byte $0E,COLOR_ORANGE_GREEN|$0E, COLOR_ORANGE_GREEN|$0C, COLOR_ORANGE_GREEN|$0A, COLOR_ORANGE_GREEN|$08, COLOR_ORANGE_GREEN|$06, COLOR_ORANGE_GREEN|$04,$02,$00
-
-
-	; We could change boom block color cycles.   
-	; Possibly use different color sets for running
-	; boom blocks as an animation addition when 
-	; transitioning on the initial game entry, or 
-	; prior to serving a new ball.
- 	
-
-BOOM_CYCLE_OFFSET ; Base offset (row * 9) to the color entries and P/M images for the cycle.
-	.byte $00,9,18,27,36,45,54,63,72
-	
 BOOM_CYCLE_HPOS ; by cycle frame -- relative to Brick from BRICK_XPOS_LEFT_TABLE
 	.byte $ff,$ff,$00,$00,$01,$02,$03,$04,$04
 
@@ -2080,8 +2056,37 @@ BOOM_CYCLE_SIZE ; by cycle frame
 	.byte PM_SIZE_NORMAL ; 4 bits * 1 color clocks == 4 color clocks.  ; 7
 	.byte PM_SIZE_NORMAL ; 2 bits * 1 color clocks == 2 color clocks.  ; 8
 	.byte PM_SIZE_NORMAL ; 2 bits * 1 color clocks == 2 color clocks.  ; 9
-	
-BOOM_ANIMATION_FRAMES ; 7 bytes of Player image data per each cycle frame -- 8th and 9th byte 0 padded, since we are putting the * 9 offset table to dual use.  
+
+; Row Lookups based on cycle need to multiply by the number 
+; of cycle frames.  Here is a general table of multiplying 
+; times nine where the result fits into a byte (from 0 to 28)
+;
+TIMES_NINE
+	.byte $00,9,18,27,36,45,54,63,72,81,90,
+	.byte 99,108,117,126,135,144,153,162,171,180
+	.byte 189,198,207,216,225,234,243,252
+
+; We could change boom block color cycles.   
+; Possibly use different color sets for running
+; boom blocks as an animation addition when 
+; transitioning on the initial game entry, or 
+; prior to serving a new ball.
+;	
+BOOM_CYCLE_COLOR ; by row by cycle frame -- 9 frames per boom animation
+	.byte $0E,COLOR_PINK|$0E,         COLOR_PINK|$0C,         COLOR_PINK|$0A,         COLOR_PINK|$08,         COLOR_PINK|$06,         COLOR_PINK|$04,        $02,$00
+	.byte $0E,COLOR_PURPLE|$0E,       COLOR_PURPLE|$0C,       COLOR_PURPLE|$0A,       COLOR_PURPLE|$08,       COLOR_PURPLE|$06,       COLOR_PURPLE|$04,      $02,$00
+	.byte $0E,COLOR_RED_ORANGE|$0E,   COLOR_RED_ORANGE|$0C,   COLOR_RED_ORANGE|$0A,   COLOR_RED_ORANGE|$08,   COLOR_RED_ORANGE|$06,   COLOR_RED_ORANGE|$04,  $02,$00
+	.byte $0E,COLOR_ORANGE2|$0E,      COLOR_ORANGE2|$0C,      COLOR_ORANGE2|$0A,      COLOR_ORANGE2|$08,      COLOR_ORANGE2|$06,      COLOR_ORANGE2|$04,     $02,$00
+	.byte $0E,COLOR_GREEN|$0E,        COLOR_GREEN|$0C,        COLOR_GREEN|$0A,        COLOR_GREEN|$08,        COLOR_GREEN|$06,        COLOR_GREEN|$04,       $02,$00
+	.byte $0E,COLOR_BLUE_GREEN|$0E,   COLOR_BLUE_GREEN|$0C,   COLOR_BLUE_GREEN|$0A,   COLOR_BLUE_GREEN|$08,   COLOR_BLUE_GREEN|$06,   COLOR_BLUE_GREEN|$04,  $02,$00
+	.byte $0E,COLOR_LITE_ORANGE|$0E,  COLOR_LITE_ORANGE|$0C,  COLOR_LITE_ORANGE|$0A,  COLOR_LITE_ORANGE|$08,  COLOR_LITE_ORANGE|$06,  COLOR_LITE_ORANGE|$04, $02,$00
+	.byte $0E,COLOR_ORANGE_GREEN|$0E, COLOR_ORANGE_GREEN|$0C, COLOR_ORANGE_GREEN|$0A, COLOR_ORANGE_GREEN|$08, COLOR_ORANGE_GREEN|$06, COLOR_ORANGE_GREEN|$04,$02,$00
+
+; 7 bytes of Player image data per each cycle frame.
+; The 8th and 9th byte 0 padded, since we are putting 
+; Times Nine offset table to dual use.
+;  	
+BOOM_ANIMATION_FRAMES 
 	.byte $FC,$FC,$FC,$FC,$FC,$FC,$FC,$00,$00 ; 7 scan lines, 6 bits * 2 color clocks == 12 color clocks. ; 1
 	.byte $FC,$FC,$FC,$FC,$FC,$FC,$FC,$00,$00 ; 7 scan lines, 6 bits * 2 color clocks == 12 color clocks. ; 2
 	.byte $00,$F8,$F8,$F8,$F8,$F8,$00,$00,$00 ; 5 scan lines, 5 bits * 2 color clocks == 10 color clocks. ; 3
@@ -2568,6 +2573,7 @@ End_Brick_Scroll_Update
 ;
 ; Side note -- maybe a future iteration will utilize the boom-o-matic blocks 
 ; during Title or Game Over sequences.
+;===============================================================================
 
 ;
 ; First, is boom enabled?
@@ -2577,206 +2583,247 @@ End_Brick_Scroll_Update
 	; No boom. MAIN should have zero'd all HPOS and animation states.
 	jmp End_Boom_O_Matic
 
-	; NEW RULES FOR NEW BOOM.   
-	; The code was becoming stupidly insane.  There are now limits on behavior.
+	; !!! NEW RULES FOR NEW BOOM !!!   
+	; The code was accounting for impossible situations and was ballooning 
+	; into something stupidly insane.  There are now limits on behavior.
+	; It is still insanne, but mildly less stupid.
 	;
-	; MAIN must set request 1 first, so there will be no situation 
-	; when request 1 is not set and request 2 is set.
-	; Boom cycles are always set in order 1, then 2.
-	; Therefore, when adding a new cycle the current 
-	; state of Boom 1 is copied to Boom 2 and the new Boom
-	; is inserted in Boom 1.  This simplifies the madness.
+	; Upon hitting a brick, the ball must next hit the paddle or 
+	; the top wall before allowing collision with another brick.
+	; Therefor, MAIN has no possible way it can request starting 
+	; more than one boom cycle on the same row on the same frame.
+	; Thus, MAIN will have only one request input to VBI. 
+	; The VBI input handler will push down older requests to the 
+	; second control block if needed. 
+	;
+	; MAIN now has only one request buffer for entering a brick into 
+	; the Boom cycle animations.  If another animation is already 
+	; running on that same row, it is pushed down into the second
+	; list, and the new request goes into the first list.  Thus 
+	; the "1" list entries will always be newer than the "2" lists', 
+	; and if there is no animation running in the "1" list then 
+	; the "2" list can be assumed to be unused/idle.
+
+; ****************
+; ADD NEW BOOMS - If a new request exists, add to animation list "1" 
+; ****************
 
 Add_New_Boom ; Add any new requests to the lists.
 	ldx #7 
 
 New_Boom_Loop
-	lda BOOM_1_REQUEST,x ; is request flag set?
+	lda BOOM_REQUEST,x ; is request flag set?
 	beq Next_Boom_Test ; no, therefore 2 would not be set either.
 	lda BOOM_1_CYCLE,x ; If this is 0 then use it.
 	beq Assign_Boom_1
 	; Boom 1 already in use.
-	; First Move Boom 1 state to Boom 2.
+	; First move Boom 1 animation states to Boom 2 list.
 	jsr Push_Boom_1_To_Boom_2
 	
 	; Assign request 1 to Boom 1.
 Assign_Boom_1
-	lda BOOM_1_REQUEST_BRICK,x ; Get requested brick, 0 to 13
-	sta BOOM_1_BRICK,x         ; assign to current animation
-	lda #1                     ; set first frame of animation
-	sta BOOM_1_CYCLE,x
+	lda BOOM_REQUEST_BRICK,x ; Get requested brick, 0 to 13
+	sta BOOM_1_BRICK,x       ; assign to this row's animation slot
+	lda #1                     
+	sta BOOM_1_CYCLE,x       ; set first frame of animation
     lda #0
-	sta BOOM_1_REQUEST,x ; Turn off input request.
-	
-	; Try assigning new request 2.
-	; this is overkill, because the game can't realistically
-	; hit two bricks in the same row on the same frame.
-Try_New_Boom_2
-	lda BOOM_2_REQUEST,x ; is request flag set?
-	beq Next_Boom_Test ; no, therefore, done adding boom for this row.
-	; Do not need to test the cycle, since if we got 
-	; here Request 1 was already assigned to Boom 1.
-	; So, push current Boom 1 to Boom 2.
-	jsr Push_Boom_1_To_Boom_2
-	; Assign request 2 to Boom 1.
-	lda BOOM_2_REQUEST_BRICK,x ; Get requested brick, 0 to 13
-	sta BOOM_1_BRICK,x         ; assign to current animation
-	lda #1                     ; set first frame of animation
-	sta BOOM_1_CYCLE,x
-    lda #0
-	sta BOOM_2_REQUEST,x ; Turn off input request.
+	sta BOOM_REQUEST,x ; Turn off input request.
 	
 Next_Boom_Test
 	dex
 	bpl New_Boom_Loop
+
+; ****************
+; ANIMATE BOOMS - Animate where cycle is non-zero. Incremement animation Cycle.
+; ****************
 	
 ; Next walk through the current Boom cycles, do the 
 ; animation changes and update the values.
 Animate_Boom_O_Matic
 	ldx #7 
 
-New_Boom_Animation_Loop
-	stx V_TEMP_ROW        ; Save Row
+Boom_Animation_Loop
+	stx V_TEMP_ROW       ; Save Row
 	
-	ldy BOOM_1_CYCLE,x   ; If this is not zero, 
+	ldy BOOM_1_CYCLE,x   ; Y = Cycle. If this is not zero, 
 	bne Boom_Animation_1 ; then animate it.
-	; if cycle is 0 it could be because the last frame
-	; reached the end of animation.  
+	; if cycle is 0 then it reached the last frame.  
 	lda #0               ; Force HPOS 0, just in case.
 	sta BOOM_1_HPOS,x
-	jmp Test_2_Boom
-
+	sta BOOM_2_HPOS,x    ; 2 is older, so it must be idle, too.
+	
+	jmp Next_Boom_Animation
+	
+; ****************
+; ANIMATE BOOM 1
+; ****************
+;
 Boom_Animation_1
 	dey                   ; makes cycle 1 - 9 easier to lookup as 0 - 8
-	sty V_TEMP_CYCLE      ; Save Cycle
+	sty V_TEMP_CYCLE      ; Save Cycle. Y = Cycle.
 
 	lda BOOM_CYCLE_SIZE,y ; Get P/M Horizontal Size for this cycle
 	sta BOOM_1_SIZE,y     ; Set size.
 
 	; P/M position varies by brick, and by cycle.
-	ldy BOOM_1_BRICK,x          ; Get Brick
-	lda BRICK_XPOS_LEFT_TABLE,y ; get brick HPOS
-	ldy V_TEMP_CYCLE            ; get current cycle.
+	;
+	ldy BOOM_1_BRICK,x          ; Y = Brick number for row
+	lda BRICK_XPOS_LEFT_TABLE,y ; get HPOS for brick. 
+	ldy V_TEMP_CYCLE            ; Y = current cycle.
 	clc
-	adc BOOM_CYCLE_HPOS,y       ; adjust HPOS by the current cycle.
-	sta BOOM_1_HPOS,x
+	adc BOOM_CYCLE_HPOS,y       ; adjust HPOS by the current animation state.
+	sta BOOM_1_HPOS,x           ; Save HPOS 
 	
 	; P/M Color is based on row and by cycle.
-	; Multiply row times 9 in offset table, then add row to get entry.
-	ldy BOOM_CYCLE_OFFSET,x
-	lda BOOM_CYCLE_COLOR,y
-	sta BOOM_1_COLPM,x
+	; Multiply row times 9 in offset table, then add cycle to get entry.
+	;
+	lda TIMES_NINE,x            ; A = Row * 9
+	clc
+	adc V_TEMP_CYCLE            ; A = A + Cycle
+	tay                         ; Y = (row * 9) + cycle
+	lda BOOM_CYCLE_COLOR,y      ; A = cycle_color[ (row * 9) + cycle ]
+	sta BOOM_1_COLPM,x          ; Store new color for boom on this row.
 	
 	; Last: copy 7 bytes of P/M image data to correct Y pos.
 	; Convert row to P/M ypos.
 	; multiply cycle times 9.
 	; copy 7 bytes from table to p/m base.
-	ldy BRICK_YPOS_TOP_TABLE,x ; Get scan line of top of brick.
+	;
+	ldy BRICK_YPOS_TOP_TABLE,x ; Get scan line of top of row.
 	dey                        ; -1.  one line higher for exploding brick.
 	sta ZTEMP_PMADR            ; low byte for player/missile address. 
 	lda #>PMADR_BASE1          ; Player 1 Base,  
 	sta ZTEMP_PMADR+1          ; high byte.
-	
-	lda BOOM_CYCLE_OFFSET,x    ; Get Starting offset for animation for this frame
-	tax
+
+	; Get this cycle's starting animation frame.	
+	ldy V_TEMP_CYCLE           ; Y = Cycle again.
+	lda TIMES_NINE,y           ; A = Cycle * 9
+
+	tax                        ; X = cycle * 9                        
 	ldy #$00
-	
+
+	; Copy the current cycle's animation 
+	; image to the Player.
+	;
 Loop_Copy_PM_1_Boom
-	lda BOOM_ANIMATION_FRAMES,x ; Read from animation table
-	sta (ZTEMP_PMADR),y         ; Store in Player memory
-	inx                         ; increment... to next byte
-	iny
+	lda BOOM_ANIMATION_FRAMES,x ; Read from animation table[ (cycle * 9) + x ]
+	sta (ZTEMP_PMADR),y         ; Store in Player memory + Y
+	inx                         ; increment to next byte in animation image
+	iny                         ; increment to next byte of player memory
 	cpy #7                      ; stop at 7 bytes.
 	bne Loop_Copy_PM_1_Boom
 
-	; Boom 1 is done.  Increment the cycle
+	; Boom 1 is done.  
+	; Increment the cycle
 	;
-	ldx V_TEMP_ROW  	 ; Get the real row back.
-    ldy BOOM_1_CYCLE,x   
-    iny
-    cpy #10
-    bne Finish_1_Cycle
-    ldy #0
+	ldx V_TEMP_ROW  	        ; Get the real row back.
+    ldy BOOM_1_CYCLE,x          ; Y = current cycle
+    iny                         ; increment cycle
+    cpy #10                     ; only 9 frames. 10 is the end.
+    bne Finish_1_Cycle          ; If not the end, then update
+    ldy #0                      ; If the end, then zero the cycle.
     
 Finish_1_Cycle
-	tya  
-    sta BOOM_1_CYCLE,x
+	tya                         ; A = Y
+    sta BOOM_1_CYCLE,x          ; Save new Cycle state.
 
-    
+
 Test_2_Boom
 	ldy BOOM_2_CYCLE,x   ; If this is not zero, 
 	bne Boom_Animation_2 ; then animate it.
-
+	; if cycle is 0 then it reached the last frame. 
 	lda #0               ; Force HPOS 0, just in case.
 	sta BOOM_2_HPOS,x
-	jmp Next_Boom_Animation
 	
+	jmp Next_Boom_Animation
+
+; ****************
+; ANIMATE BOOM 2
+; ****************
+;
 Boom_Animation_2
 	dey                     ; makes cycle 1 - 9 easier to lookup as 0 - 8
-	sty V_TEMP_CYCLE        ; Save Cycle
-
+	sty V_TEMP_CYCLE        ; Save Cycle for second boom
+	
 	lda BOOM_CYCLE_SIZE,y   ; Get P/M Horizontal Size for this cycle
 	sta BOOM_2_SIZE,y       ; Set size.
 
 	; P/M position varies by brick, and by cycle.
-	ldy BOOM_2_BRICK,x          ; Get Brick
-	lda BRICK_XPOS_LEFT_TABLE,y ; get brick HPOS
-	ldy V_TEMP_CYCLE            ; get current cycle.
+	;
+	ldy BOOM_2_BRICK,x          ; Y = Brick number for row
+	lda BRICK_XPOS_LEFT_TABLE,y ; get HPOS for brick. 
+	ldy V_TEMP_CYCLE            ; Y = current cycle.
 	clc
-	adc BOOM_CYCLE_HPOS,y       ; adjust HPOS by the current cycle.
-	sta BOOM_2_HPOS,x
+	adc BOOM_CYCLE_HPOS,y       ; adjust HPOS by the current animation state.
+	sta BOOM_2_HPOS,x           ; Save HPOS 
 	
 	; P/M Color is based on row and by cycle.
-	; Multiply row times 9 in offset table, then add row to get entry.
-	ldy BOOM_CYCLE_OFFSET,x
-	lda BOOM_CYCLE_COLOR,y
-	sta BOOM_2_COLPM,x
+	; Multiply row times 9 in offset table, then add cycle to get entry.
+	;
+	lda TIMES_NINE,x            ; A = Row * 9
+	clc
+	adc V_TEMP_CYCLE            ; A = A + Cycle
+	tay                         ; Y = (row * 9) + cycle
+	lda BOOM_CYCLE_COLOR,y      ; A = cycle_color[ (row * 9) + cycle ]
+	sta BOOM_2_COLPM,x          ; Store new color for boom on this row.
 	
-	; Last: copy 7 bytes of P/M image to correct Y pos.
+	; Last: copy 7 bytes of P/M image data to correct Y pos.
 	; Convert row to P/M ypos.
 	; multiply cycle times 9.
 	; copy 7 bytes from table to p/m base.
-	ldy BRICK_YPOS_TOP_TABLE,x ; Get scan line of top of brick.
+	;
+	ldy BRICK_YPOS_TOP_TABLE,x ; Get scan line of top of row.
 	dey                        ; -1.  one line higher for exploding brick.
 	sta ZTEMP_PMADR            ; low byte for player/missile address. 
-	lda #>PMADR_BASE2          ; Player 2 Base,  
+	lda #>PMADR_BASE2          ; Player 1 Base,  
 	sta ZTEMP_PMADR+1          ; high byte.
-	
-	lda BOOM_CYCLE_OFFSET,x    ; Get Starting offset for animation for this frame
-	tax
+
+	; Get this cycle's starting animation frame.	
+	ldy V_TEMP_CYCLE           ; Y = Cycle again.
+	lda TIMES_NINE,y           ; A = Cycle * 9
+
+	tax                        ; X = cycle * 9                        
 	ldy #$00
-	
+
+	; Copy the current cycle's animation 
+	; image to the Player.
+	;
 Loop_Copy_PM_2_Boom
-	lda BOOM_ANIMATION_FRAMES,x ; Read from animation table
-	sta (ZTEMP_PMADR),y         ; Store in Player memory
-	inx                         ; increment... to next byte
-	iny
+	lda BOOM_ANIMATION_FRAMES,x ; Read from animation table[ (cycle * 9) + x ]
+	sta (ZTEMP_PMADR),y         ; Store in Player memory + Y
+	inx                         ; increment to next byte in animation image
+	iny                         ; increment to next byte of player memory
 	cpy #7                      ; stop at 7 bytes.
 	bne Loop_Copy_PM_2_Boom
 
-    ; Boom 2 is done.  Increment the cycle
+	; Boom 1 is done.  
+	; Increment the cycle
 	;
-	ldx V_TEMP_ROW  	 ; Get the real row back.
-    ldy BOOM_2_CYCLE,x   
-    iny
-    cpy #10
-    bne Finish_2_Cycle
-    ldy #0
+	ldx V_TEMP_ROW  	        ; Get the real row back.
+    ldy BOOM_2_CYCLE,x          ; Y = current cycle
+    iny                         ; increment cycle
+    cpy #10                     ; only 9 frames. 10 is the end.
+    bne Finish_2_Cycle          ; If not the end, then update
+    ldy #0                      ; If the end, then zero the cycle.
     
-Finish_2_Cycle    
-    tya
-    sta BOOM_2_CYCLE,x
-    
+Finish_2_Cycle
+	tya                         ; A = Y
+    sta BOOM_2_CYCLE,x          ; Save new Cycle state.
+	
+	
+; ****************
+; END ROW LOOP
+; ****************
+;    
 Next_Boom_Animation
 	dex
 	bmi End_Boom_O_Matic
-;	bpl New_Boom_Animation_Loop
-	jmp New_Boom_Animation_Loop
+;	bpl Boom_Animation_Loop
+	jmp Boom_Animation_Loop
 
 End_Boom_O_Matic
 
-	
-	
+
 
 	
 	
@@ -3777,7 +3824,17 @@ MainGetRandomScroll
 
 PRG_START 
 
+; 1) a) insure all screen memory is 0.  
+;       (May be smart to zero/init other things, too.)
+
+	jsr MainClearAllScreenRAM
+
+	
+; 1) b) Initialize graphics/screen
+
 	jsr Setup  ; setup graphics
+
+; 1) c); Enable Features....
 
 ;	lda #1
 ;	jsr MainSetTitle
@@ -3785,12 +3842,14 @@ PRG_START
 ;	lda #1
 ;	sta ENABLE_THUMPER
 
+	lda #1
+	sta ENABLE_BOOM
+
+	
+; 1) d) Start Vertical Blank Interrupt
 
 	jsr Set_VBI
 	
-; 1) insure all screen memory is 0.
-
-	jsr MainClearAllScreenRAM
 
 ; 2 is NOT NEEDED.  Default initialized position is left/screen 1:
 
@@ -3818,8 +3877,7 @@ PRG_START
 ;	ldx #240
 ;	jsr WaitFrames
 	
-    lda #1
-    sta ENABLE_BOOM
+
     
 	
 FOREVER
@@ -4207,9 +4265,9 @@ skip_29secTick
 	
 	mDebugByte ENABLE_BOOM,           4 ; EB
 
-	mDebugByte BOOM_1_REQUEST,       10 ; RQ
+	mDebugByte BOOM_REQUEST,       10 ; RQ
 	
-	mDebugByte BOOM_1_REQUEST_BRICK, 16 ; RB
+	mDebugByte BOOM_REQUEST_BRICK, 16 ; RB
 
 	mDebugByte BOOM_1_CYCLE,         19 ; CY
 
@@ -4351,6 +4409,9 @@ WaitForScroll
 ; function is operating after coordinate conversion via  
 ; BALL_XPOS_TO_BRICK_TABLE and BALL_YPOS_TO_BRICK_TABLE.
 ;===============================================================================
+; Destroy bricks column by column
+;===============================================================================
+
 
 Diag_DestroyBricks1
 
@@ -4365,10 +4426,10 @@ Diag_DestroyBricks1
 	jsr DestroyBrick ; Remove Brick at X, Y position
 	
     ; --------------------------------
-	txa 
-	sta BOOM_1_REQUEST_BRICK,y
-	lda #1
-	sta BOOM_1_REQUEST,y
+	txa                         ; Transfer Brick number to Accumulator
+	sta BOOM_REQUEST_BRICK,y  ; Store brick number in the boom request for this row
+	lda #1                      ; Raise flag to VBI that this row has a brick 
+	sta BOOM_REQUEST,y        ; ready to enter in the boom cycle animations.
 	; --------------------------------
 	
 	txa              ; save brick number temporarily.
@@ -4384,6 +4445,13 @@ Diag_DestroyBricks1
 
 	rts
 
+
+;===============================================================================
+; DIAG DESTROY BRICKS - looping brick by brick destruction.
+;===============================================================================
+; Same function as above destroying bricks row by row
+;===============================================================================
+
 .local
 Diag_DestroyBricks2
 
@@ -4398,15 +4466,15 @@ Diag_DestroyBricks2
 
 	jsr DestroyBrick ; Remove Brick at X, Y position
 	
-	; --------------------------------
-	txa 
-	sta BOOM_1_REQUEST_BRICK,y
-	lda #1
-	sta BOOM_1_REQUEST,y
+    ; --------------------------------
+	txa                         ; Transfer Brick number to Accumulator
+	sta BOOM_REQUEST_BRICK,y  ; Store brick number in the boom request for this row
+	lda #1                      ; Raise flag to VBI that this row has a brick 
+	sta BOOM_REQUEST,y        ; ready to enter in the boom cycle animations.
 	; --------------------------------
 	
 	txa              ; save brick number temporarily.
-	ldx #2   
+	ldx #3   
 	jsr WaitFrames   ; Pause for X frames
 	tax              ; get Brick number back.
 	
