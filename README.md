@@ -95,9 +95,12 @@ Video Here: https://youtu.be/K__BENVv9AQ
 This is the next increment in playfield management in the breakout game.   Each of the bricks' rows can be controlled to scroll left or right independently at different speeds.  This demo shows scrolling transitions from the Breakout title screen, to a playfield of bricks, to a Game Over screen.  It also demonstrates the brick bitmap masking/removal works as expected.
 
 The scrolling transitions have several variables chosen at random:  
-*The direction may be left or right. 
-*A varible delay may be added to each line before scrolling begins.  
-*The speed may vary from 1 to 4 color clocks per frame.
+
+* A varible delay may be added to each line before scrolling begins.
+
+* The direction may be left or right.
+
+* The speed may vary from 1 to 4 color clocks per frame.
 
 The program includes several canned patterns for scrolling.  The speed of the bottom line in all patterns has no starting delay and always scrolls 4 pixels per frame to insure the new bottom row is correctly in place before the ball returns to strike a brick.
 
