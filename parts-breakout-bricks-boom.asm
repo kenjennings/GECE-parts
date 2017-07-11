@@ -283,7 +283,7 @@ PARAM_84 = $cb ; ZBRICK_LINE -- coord_Y reduced to line 1-8
 PARAM_85 = $cc ; ZBRICK_COL  -- coord_X reduced to brick number 1-14
 PARAM_86 = $cd ; ZCOORD_Y    -- coord_Y for collision check
 PARAM_87 = $ce ; ZCOORD_X    -- coord_X for collision check 
-PARAM_88 = $cf ; 
+PARAM_88 = $cf ; V_15FPS_TICKER -- When this is 0, then 1/4 tick events occur.
 PARAM_89 = $d0 ; M_TEMP1  -- local temporary value
 PARAM_90 = $d1 ; DIAG_BRICK_Y - remember Y for looping brick destruction 
 PARAM_91 = $d2 ; DIAG_BRICK_X - remember X for looping brick destruction
@@ -296,7 +296,9 @@ PARAM_96 = $DA ; MAIN: Delay Index
 PARAM_97 = $DB ; MAIN: Temporary SAVE/PHA
 
 
-ZEROPAGE_POINTER_1 = $DE ; 
+PARAM_98 = $DE ; V_20FPS_TICKER -- When this is 0, then 1/3 tick events occur.
+PARAM_99 = $DF ; V_30FPS_TICKER -- When this is 0, then 1/2 tick events occur
+
 ZEROPAGE_POINTER_2 = $E0 ;
 ZEROPAGE_POINTER_3 = $E2 ; 
 ZEROPAGE_POINTER_4 = $E4 ; 
@@ -330,6 +332,12 @@ ZCOORD_Y =    PARAM_86 ; Ycoord for collision check
 ZCOORD_XP =   PARAM_87 ; Xcoord for collision check  
 
 
+V_15FPS_TICKER = PARAM_88 ; count 0, 1, 2, 3, 0, 1, 2, 3... 0 triggers animation events.
+
+V_20FPS_TICKER = PARAM_98 ; count 0, 1, 2, 0, 1, 2... 0 triggers animation events.
+
+V_30FPS_TICKER = PARAM_99 ; count 0, 1, 0, 1... 0 triggers animation events.
+
 ; flag when timer counted (29 sec). Used on the
 ; title and game over  and auto play screens. When auto_wait
 ; ticks it triggers automatic transition to the 
@@ -350,10 +358,8 @@ ZBRICK_BASE =   ZEROPAGE_POINTER_8 ; $EC - Pointer to start of bricks on a line.
 ZTITLE_COLPM0 = ZEROPAGE_POINTER_9 ; $EE - VBI sets for DLI to use
 
 
-
 V_TEMP_ROW =   PARAM_06 ; = $DC ; -- VBI: Temporary Boom Block Row
 V_TEMP_CYCLE = PARAM_07 ; = $DD ; -- VBI: Temporary Boom Block Cycle
-
 
 
 M_DIRECTION_INDEX = PARAM_94 ; = $D8 ; MAIN: Direction Index
@@ -2073,14 +2079,14 @@ TIMES_NINE
 ; prior to serving a new ball.
 ;	
 BOOM_CYCLE_COLOR ; by row by cycle frame -- 9 frames per boom animation
-	.byte $0E,COLOR_PINK|$0E,         COLOR_PINK|$0C,         COLOR_PINK|$0A,         COLOR_PINK|$08,         COLOR_PINK|$06,         COLOR_PINK|$04,        $02,$00
-	.byte $0E,COLOR_PURPLE|$0E,       COLOR_PURPLE|$0C,       COLOR_PURPLE|$0A,       COLOR_PURPLE|$08,       COLOR_PURPLE|$06,       COLOR_PURPLE|$04,      $02,$00
-	.byte $0E,COLOR_RED_ORANGE|$0E,   COLOR_RED_ORANGE|$0C,   COLOR_RED_ORANGE|$0A,   COLOR_RED_ORANGE|$08,   COLOR_RED_ORANGE|$06,   COLOR_RED_ORANGE|$04,  $02,$00
-	.byte $0E,COLOR_ORANGE2|$0E,      COLOR_ORANGE2|$0C,      COLOR_ORANGE2|$0A,      COLOR_ORANGE2|$08,      COLOR_ORANGE2|$06,      COLOR_ORANGE2|$04,     $02,$00
-	.byte $0E,COLOR_GREEN|$0E,        COLOR_GREEN|$0C,        COLOR_GREEN|$0A,        COLOR_GREEN|$08,        COLOR_GREEN|$06,        COLOR_GREEN|$04,       $02,$00
-	.byte $0E,COLOR_BLUE_GREEN|$0E,   COLOR_BLUE_GREEN|$0C,   COLOR_BLUE_GREEN|$0A,   COLOR_BLUE_GREEN|$08,   COLOR_BLUE_GREEN|$06,   COLOR_BLUE_GREEN|$04,  $02,$00
+	.byte $0E,COLOR_LITE_ORANGE|$0E,         COLOR_PINK|$0C,         COLOR_PINK|$0A,         COLOR_PINK|$08,         COLOR_PINK|$06,         COLOR_PINK|$04, $02,$00
+	.byte $0E,COLOR_LITE_ORANGE|$0E,         COLOR_PINK|$0C,         COLOR_PINK|$0A,         COLOR_PINK|$08,         COLOR_PINK|$06,         COLOR_PINK|$04, $02,$00
+	.byte $0E,COLOR_LITE_ORANGE|$0E,   COLOR_RED_ORANGE|$0C,   COLOR_RED_ORANGE|$0A,   COLOR_RED_ORANGE|$08,   COLOR_RED_ORANGE|$06,   COLOR_RED_ORANGE|$04, $02,$00
+	.byte $0E,COLOR_LITE_ORANGE|$0E,   COLOR_RED_ORANGE|$0C,   COLOR_RED_ORANGE|$0A,   COLOR_RED_ORANGE|$08,   COLOR_RED_ORANGE|$06,   COLOR_RED_ORANGE|$04, $02,$00
+	.byte $0E,COLOR_LITE_ORANGE|$0E,        COLOR_GREEN|$0C,        COLOR_GREEN|$0A,        COLOR_GREEN|$08,        COLOR_GREEN|$06,        COLOR_GREEN|$04, $02,$00
+	.byte $0E,COLOR_LITE_ORANGE|$0E,        COLOR_GREEN|$0C,        COLOR_GREEN|$0A,        COLOR_GREEN|$08,        COLOR_GREEN|$06,        COLOR_GREEN|$04, $02,$00
 	.byte $0E,COLOR_LITE_ORANGE|$0E,  COLOR_LITE_ORANGE|$0C,  COLOR_LITE_ORANGE|$0A,  COLOR_LITE_ORANGE|$08,  COLOR_LITE_ORANGE|$06,  COLOR_LITE_ORANGE|$04, $02,$00
-	.byte $0E,COLOR_ORANGE_GREEN|$0E, COLOR_ORANGE_GREEN|$0C, COLOR_ORANGE_GREEN|$0A, COLOR_ORANGE_GREEN|$08, COLOR_ORANGE_GREEN|$06, COLOR_ORANGE_GREEN|$04,$02,$00
+	.byte $0E,COLOR_LITE_ORANGE|$0E,  COLOR_LITE_ORANGE|$0C,  COLOR_LITE_ORANGE|$0A,  COLOR_LITE_ORANGE|$08,  COLOR_LITE_ORANGE|$06,  COLOR_LITE_ORANGE|$04, $02,$00
 
 ; 7 bytes of Player image data per each cycle frame.
 ; The 8th and 9th byte 0 padded, since we are putting 
@@ -2184,6 +2190,35 @@ Breakout_VBI
 	sta VDSLST
 	lda #>DISPLAY_LIST_INTERRUPT
 	sta VDSLST+1
+
+
+; ==============================================================
+; MAINTAIN SUB-60 FPS TICKERS
+; ==============================================================
+	;
+	; 30 FPS
+	;
+	inc Z_30FPS_TICKER
+	lda Z_30FPS_TICKER
+	and #~00000001
+	sta Z_30FPS_TICKER
+	;
+	; 20 FPS - 0, 1, 2, can't be AND masked.  
+	;
+	inc Z_20FPS_TICKER
+	lda Z_20FPS_TICKER
+	cmp #3
+	bne Skip_20FPS_Reset
+	lda #0
+	sta Z_20FPS_TICKER
+Skip_20FPS_Reset	
+	;
+	; 30 FPS
+	;
+	inc Z_15FPS_TICKER
+	lda Z_15FPS_TICKER
+	and #~00000011
+	sta Z_15FPS_TICKER
 
 	
 ; ==============================================================
@@ -2607,7 +2642,7 @@ End_Brick_Scroll_Update
 ; ****************
 ; ADD NEW BOOMS - If a new request exists, add to animation list "1" 
 ; ****************
-
+;
 Add_New_Boom ; Add any new requests to the lists.
 	ldx #7 
 
@@ -2627,18 +2662,36 @@ Assign_Boom_1
 	lda #1                     
 	sta BOOM_1_CYCLE,x       ; set first frame of animation
     lda #0
-	sta BOOM_REQUEST,x ; Turn off input request.
+	sta BOOM_REQUEST,x       ; Turn off input request.
 	
 Next_Boom_Test
 	dex
 	bpl New_Boom_Loop
 
+; Note that the 20fps clock applied here means new boom requests 
+; could be added for three frames before any animation occurs.
+;  
+; (In a better world, this should be modified to apply the first 
+; frame animation on the same frame whrn the request is made, and 
+; and then apply 20fps updates to that afterwards.)
+;	
+; ****************
+; BOOM TICKER - Reduce animation rate to 20 frames/sec
+; ****************
+;
+Check_Boom_Ticker
+	lda Z_20FPS_TICKER
+	beq Animate_Boom_O_Matic
+	jmp End_Boom_O_Matic
+	
+
 ; ****************
 ; ANIMATE BOOMS - Animate where cycle is non-zero. Incremement animation Cycle.
 ; ****************
-	
+;	
 ; Next walk through the current Boom cycles, do the 
 ; animation changes and update the values.
+;
 Animate_Boom_O_Matic
 	ldx #7 
 
@@ -2653,7 +2706,8 @@ Boom_Animation_Loop
 	sta BOOM_2_HPOS,x    ; 2 is older, so it must be idle, too.
 	
 	jmp Next_Boom_Animation
-	
+
+
 ; ****************
 ; ANIMATE BOOM 1
 ; ****************
