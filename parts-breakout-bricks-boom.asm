@@ -379,14 +379,14 @@ M_TEMP1 = PARAM_89 ; = $d0 ;   -- local temporary value
 
 ; DISPLAY values using Page 0 locations.
 
-ZROW_LMS0 = ZEROPAGE_POINTER_0 ; Pointer to display list LMS brick row 0
-ZROW_LMS1 = ZEROPAGE_POINTER_1 ; Pointer to display list LMS brick row 0
-ZROW_LMS2 = ZEROPAGE_POINTER_2 ; Pointer to display list LMS brick row 0
-ZROW_LMS3 = ZEROPAGE_POINTER_3 ; Pointer to display list LMS brick row 0
-ZROW_LMS4 = ZEROPAGE_POINTER_4 ; Pointer to display list LMS brick row 0
-ZROW_LMS5 = ZEROPAGE_POINTER_5 ; Pointer to display list LMS brick row 0
-ZROW_LMS6 = ZEROPAGE_POINTER_6 ; Pointer to display list LMS brick row 0
-ZROW_LMS7 = ZEROPAGE_POINTER_7 ; Pointer to display list LMS brick row 0
+;ZROW_LMS0 = ZEROPAGE_POINTER_0 ; Pointer to display list LMS brick row 0
+;ZROW_LMS1 = ZEROPAGE_POINTER_1 ; Pointer to display list LMS brick row 0
+;ZROW_LMS2 = ZEROPAGE_POINTER_2 ; Pointer to display list LMS brick row 0
+;ZROW_LMS3 = ZEROPAGE_POINTER_3 ; Pointer to display list LMS brick row 0
+;ZROW_LMS4 = ZEROPAGE_POINTER_4 ; Pointer to display list LMS brick row 0
+;ZROW_LMS5 = ZEROPAGE_POINTER_5 ; Pointer to display list LMS brick row 0
+;ZROW_LMS6 = ZEROPAGE_POINTER_6 ; Pointer to display list LMS brick row 0
+;ZROW_LMS7 = ZEROPAGE_POINTER_7 ; Pointer to display list LMS brick row 0
 
 ; ==============================================================
 ; BRICKS
@@ -755,7 +755,7 @@ EMPTY_LINE ; 64 bytes of 0.
 
 DIAG0
 ;	.sbyte " JF SS SI VM H0 H1 H2 H3 H4    DE SP DI "
-	.sbyte " JF SS SI VM  H0 1 2 3 4 5 6 7  DE SP DI"
+	.sbyte " JF EB    RQ    RB CY BB HP SZ CP       "
 
 DIAG1
 	.dc 40 $00
@@ -2455,7 +2455,7 @@ Move_Brick_Row
 ; SCROLL VIEW LEFT - Move view left/screen bricks Right
 ; ****************
 
-Do_View_Scroll_Left	    
+Do_View_Scroll_Left
 	lda BRICK_CURRENT_HSCROL,y      ; get the current Hscrol for this row.
 	
 	clc
@@ -2592,7 +2592,7 @@ Add_New_Boom ; Add any new requests to the lists.
 
 New_Boom_Loop
 	lda BOOM_1_REQUEST,x ; is request flag set?
-	beq Next_Boom_Test ; no, therefore 2 is not set either.
+	beq Next_Boom_Test ; no, therefore 2 would not be set either.
 	lda BOOM_1_CYCLE,x ; If this is 0 then use it.
 	beq Assign_Boom_1
 	; Boom 1 already in use.
@@ -2605,8 +2605,12 @@ Assign_Boom_1
 	sta BOOM_1_BRICK,x         ; assign to current animation
 	lda #1                     ; set first frame of animation
 	sta BOOM_1_CYCLE,x
-
+    lda #0
+	sta BOOM_1_REQUEST,x ; Turn off input request.
+	
 	; Try assigning new request 2.
+	; this is overkill, because the game can't realistically
+	; hit two bricks in the same row on the same frame.
 Try_New_Boom_2
 	lda BOOM_2_REQUEST,x ; is request flag set?
 	beq Next_Boom_Test ; no, therefore, done adding boom for this row.
@@ -2619,7 +2623,9 @@ Try_New_Boom_2
 	sta BOOM_1_BRICK,x         ; assign to current animation
 	lda #1                     ; set first frame of animation
 	sta BOOM_1_CYCLE,x
-
+    lda #0
+	sta BOOM_2_REQUEST,x ; Turn off input request.
+	
 Next_Boom_Test
 	dex
 	bpl New_Boom_Loop
@@ -2630,19 +2636,19 @@ Animate_Boom_O_Matic
 	ldx #7 
 
 New_Boom_Animation_Loop
+	stx V_TEMP_ROW        ; Save Row
+	
 	ldy BOOM_1_CYCLE,x   ; If this is not zero, 
 	bne Boom_Animation_1 ; then animate it.
 	; if cycle is 0 it could be because the last frame
 	; reached the end of animation.  
 	lda #0               ; Force HPOS 0, just in case.
 	sta BOOM_1_HPOS,x
-	sta BOOM_2_HPOS,x
-	beq Next_Boom_Animation
+	jmp Test_2_Boom
 
 Boom_Animation_1
 	dey                   ; makes cycle 1 - 9 easier to lookup as 0 - 8
 	sty V_TEMP_CYCLE      ; Save Cycle
-	stx V_TEMP_ROW        ; Save Row
 
 	lda BOOM_CYCLE_SIZE,y ; Get P/M Horizontal Size for this cycle
 	sta BOOM_1_SIZE,y     ; Set size.
@@ -2683,15 +2689,28 @@ Loop_Copy_PM_1_Boom
 	cpy #7                      ; stop at 7 bytes.
 	bne Loop_Copy_PM_1_Boom
 
-	; Boom 1 is done.
-	; Now try Boom 2.
+	; Boom 1 is done.  Increment the cycle
 	;
 	ldx V_TEMP_ROW  	 ; Get the real row back.
+    ldy BOOM_1_CYCLE,x   
+    iny
+    cpy #10
+    bne Finish_1_Cycle
+    ldy #0
+    
+Finish_1_Cycle
+	tya  
+    sta BOOM_1_CYCLE,x
 
+    
+Test_2_Boom
 	ldy BOOM_2_CYCLE,x   ; If this is not zero, 
 	bne Boom_Animation_2 ; then animate it.
-	beq Next_Boom_Animation
 
+	lda #0               ; Force HPOS 0, just in case.
+	sta BOOM_2_HPOS,x
+	jmp Next_Boom_Animation
+	
 Boom_Animation_2
 	dey                     ; makes cycle 1 - 9 easier to lookup as 0 - 8
 	sty V_TEMP_CYCLE        ; Save Cycle
@@ -2735,9 +2754,24 @@ Loop_Copy_PM_2_Boom
 	cpy #7                      ; stop at 7 bytes.
 	bne Loop_Copy_PM_2_Boom
 
+    ; Boom 2 is done.  Increment the cycle
+	;
+	ldx V_TEMP_ROW  	 ; Get the real row back.
+    ldy BOOM_2_CYCLE,x   
+    iny
+    cpy #10
+    bne Finish_2_Cycle
+    ldy #0
+    
+Finish_2_Cycle    
+    tya
+    sta BOOM_2_CYCLE,x
+    
 Next_Boom_Animation
 	dex
-	bpl New_Boom_Animation_Loop
+	bmi End_Boom_O_Matic
+;	bpl New_Boom_Animation_Loop
+	jmp New_Boom_Animation_Loop
 
 End_Boom_O_Matic
 
@@ -2768,7 +2802,7 @@ Push_Boom_1_To_Boom_2
 	lda BOOM_1_BRICK,x
 	sta BOOM_2_BRICK,x
 	lda BOOM_1_CYCLE,x
-	sta BOOM_2_CYCLE_x
+	sta BOOM_2_CYCLE,x
 
 	rts
 
@@ -3784,6 +3818,9 @@ PRG_START
 ;	ldx #240
 ;	jsr WaitFrames
 	
+    lda #1
+    sta ENABLE_BOOM
+    
 	
 FOREVER
 
@@ -3817,7 +3854,7 @@ FOREVER
 ; ***************
 ; CLEAR TITLE     
 ; ***************
-
+    
 ; 7) Set random destination to clear screen (left/screen 1 and right/screen 3)
 ; 8) a) Signal start Scroll to the VBI
 
@@ -4176,13 +4213,13 @@ skip_29secTick
 
 	mDebugByte BOOM_1_CYCLE,         19 ; CY
 
-	mDebugByte BOOM_1_BRICK,         21 ; BB
+	mDebugByte BOOM_1_BRICK,         22 ; BB
 
-	mDebugByte BOOM_1_HPOS,          24 ; HP
+	mDebugByte BOOM_1_HPOS,          25 ; HP
 
-	mDebugByte BOOM_1_SIZE,          27 ; SZ
+	mDebugByte BOOM_1_SIZE,          28 ; SZ
 
-	mDebugByte BOOM_1_COLPM,         30 ; CP
+	mDebugByte BOOM_1_COLPM,         31 ; CP
 
 
 	
@@ -4327,6 +4364,13 @@ Diag_DestroyBricks1
 
 	jsr DestroyBrick ; Remove Brick at X, Y position
 	
+    ; --------------------------------
+	txa 
+	sta BOOM_1_REQUEST_BRICK,y
+	lda #1
+	sta BOOM_1_REQUEST,y
+	; --------------------------------
+	
 	txa              ; save brick number temporarily.
 	ldx #3   
 	jsr WaitFrames   ; Pause for X frames
@@ -4351,7 +4395,15 @@ Diag_DestroyBricks2
 
 ?Next_Brick
 
+
 	jsr DestroyBrick ; Remove Brick at X, Y position
+	
+	; --------------------------------
+	txa 
+	sta BOOM_1_REQUEST_BRICK,y
+	lda #1
+	sta BOOM_1_REQUEST,y
+	; --------------------------------
 	
 	txa              ; save brick number temporarily.
 	ldx #2   
