@@ -1854,7 +1854,7 @@ BRICK_TEST_TABLE
 BRICK_XPOS_LEFT_TABLE
 	entry .= 0
 	.rept 14 ; repeat for 14 bricks in a line
-	.byte [PLAYFIELD_LEFT_EDGE_NORMAL+BRICK_LEFT_OFFSET+[entry*BRICK_WIDTH]]
+	.byte [MIN_PIXEL_X+[entry*BRICK_WIDTH]]
 	entry .= entry+1 ; next entry in table.
 	.endr
 ;
@@ -2198,27 +2198,27 @@ Breakout_VBI
 	;
 	; 30 FPS
 	;
-	inc Z_30FPS_TICKER
-	lda Z_30FPS_TICKER
+	inc V_30FPS_TICKER
+	lda V_30FPS_TICKER
 	and #~00000001
-	sta Z_30FPS_TICKER
+	sta V_30FPS_TICKER
 	;
 	; 20 FPS - 0, 1, 2, can't be AND masked.  
 	;
-	inc Z_20FPS_TICKER
-	lda Z_20FPS_TICKER
+	inc V_20FPS_TICKER
+	lda V_20FPS_TICKER
 	cmp #3
 	bne Skip_20FPS_Reset
 	lda #0
-	sta Z_20FPS_TICKER
+	sta V_20FPS_TICKER
 Skip_20FPS_Reset	
 	;
 	; 30 FPS
 	;
-	inc Z_15FPS_TICKER
-	lda Z_15FPS_TICKER
+	inc V_15FPS_TICKER
+	lda V_15FPS_TICKER
 	and #~00000011
-	sta Z_15FPS_TICKER
+	sta V_15FPS_TICKER
 
 	
 ; ==============================================================
@@ -2680,7 +2680,7 @@ Next_Boom_Test
 ; ****************
 ;
 Check_Boom_Ticker
-	lda Z_20FPS_TICKER
+	lda V_20FPS_TICKER
 	beq Animate_Boom_O_Matic
 	jmp End_Boom_O_Matic
 	
@@ -2717,7 +2717,7 @@ Boom_Animation_1
 	sty V_TEMP_CYCLE      ; Save Cycle. Y = Cycle.
 
 	lda BOOM_CYCLE_SIZE,y ; Get P/M Horizontal Size for this cycle
-	sta BOOM_1_SIZE,y     ; Set size.
+	sta BOOM_1_SIZE,x     ; Set size.
 
 	; P/M position varies by brick, and by cycle.
 	;
@@ -2800,7 +2800,7 @@ Boom_Animation_2
 	sty V_TEMP_CYCLE        ; Save Cycle for second boom
 	
 	lda BOOM_CYCLE_SIZE,y   ; Get P/M Horizontal Size for this cycle
-	sta BOOM_2_SIZE,y       ; Set size.
+	sta BOOM_2_SIZE,x       ; Set size.
 
 	; P/M position varies by brick, and by cycle.
 	;
@@ -2850,7 +2850,7 @@ Loop_Copy_PM_2_Boom
 	cpy #7                      ; stop at 7 bytes.
 	bne Loop_Copy_PM_2_Boom
 
-	; Boom 1 is done.  
+	; Boom 2 is done.  
 	; Increment the cycle
 	;
 	ldx V_TEMP_ROW  	        ; Get the real row back.
@@ -3238,6 +3238,7 @@ DLI_4
 	sty WSYNC
 	sty CHBASE
 	sta COLPF1
+	sta VSCROL
 	lda #$0A
 	sta COLPF2
 	
@@ -4071,15 +4072,15 @@ FOREVER
 ; 21) a) Set random destination to clear screens (left/screen 1 and right/screen 3)
 ; 21) b) immediate/force all disply LMS to off screen (left/screen 1 postition) 
 
-	jsr MainSetClearTargetScroll ; this does 21a and flags VBI to start moving.
+;	jsr MainSetClearTargetScroll ; this does 21a and flags VBI to start moving.
 
 	; set the VBI Immediate move flag ASAP, before VBI can start moving...
-	lda #1
-	sta BRICK_SCREEN_IMMEDIATE_POSITION
+;	lda #1
+;	sta BRICK_SCREEN_IMMEDIATE_POSITION
 	
 ; 21) c) wait for movement to occur:
 
-	jsr WaitForScroll ; This does 21c.
+;	jsr WaitForScroll ; This does 21c.
 
 ; ***************
 ; GAME OVER 
@@ -4088,22 +4089,22 @@ FOREVER
 ; 22) a) Load GAME OVER graphics to off screen (which is currently center/screen 2) and
 ; 22) b) load breakout color table
 
-	jsr MainCopyGameOver ; This does 22a and 22b.
+;	jsr MainCopyGameOver ; This does 22a and 22b.
 	
 ; 23) Set new random Start positions for left/right scroll, Signal start scroll
 ; 24) a) Signal start Scroll to the VBI
 
-	jsr MainSetCenterTargetScroll ; This does 23 and 24a.
+;	jsr MainSetCenterTargetScroll ; This does 23 and 24a.
 
 ; 24) b) Wait for next frame.
 ; 24) c) wait until scroll movement completes
 
-	jsr WaitForScroll ; This does 24b and 24c.
+;	jsr WaitForScroll ; This does 24b and 24c.
 
 ; 25) Pause 2 seconds/120 frames
 
-	ldx #120
-	jsr WaitFrames
+;	ldx #120
+;	jsr WaitFrames
 	
 ; ***************
 ; CLEAR GAME OVER     
@@ -4112,16 +4113,16 @@ FOREVER
 ; 26) Set random destination to clear screen (left/screen 1 and right/screen 3)
 ; 27) a) Signal start Scroll to the VBI
 
-	jsr MainSetClearTargetScroll ; this does 26 and 27a.
+;	jsr MainSetClearTargetScroll ; this does 26 and 27a.
 
 ; 27) b) Wait for frame.
 ; 28) c) wait until scroll movement completes
 
-	jsr WaitForScroll ; This does 27b and 27c.
+;	jsr WaitForScroll ; This does 27b and 27c.
 
 ; 29) Clear center screen
 
-	jsr MainClearCenterScreen ; and 29.
+;	jsr MainClearCenterScreen ; and 29.
 	
 ;	jsr WaitFrame ; Wait for VBI to run.
 
@@ -4319,9 +4320,9 @@ skip_29secTick
 	
 	mDebugByte ENABLE_BOOM,           4 ; EB
 
-	mDebugByte BOOM_REQUEST,       10 ; RQ
+	mDebugByte BOOM_REQUEST,         10 ; RQ
 	
-	mDebugByte BOOM_REQUEST_BRICK, 16 ; RB
+	mDebugByte BOOM_REQUEST_BRICK,   16 ; RB
 
 	mDebugByte BOOM_1_CYCLE,         19 ; CY
 
