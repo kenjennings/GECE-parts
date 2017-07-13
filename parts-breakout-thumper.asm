@@ -166,27 +166,32 @@ PADDLE_MAX = (PLAYFIELD_RIGHT_EDGE_NORMAL-PLAYFIELD_LEFT_EDGE_NORMAL-11)
 ; Essentially, think of these as extra data registers.
 ;
 ; Also used as permanent variables with lower latency than regular memory.
-
+;
 ; The Atari OS has defined purpose for the first half of Page Zero 
 ; locations.  Since no Floating Point will be used here we'll 
-; borrow the FP registers in Page Zero.
+; borrow everything in the second half of Page Zero.
+;
+;===============================================================================
+;
+; This list is a disorganized, royal mess.  Next time don't start 
+; with the page zero list allowed for BASIC.  Just start at $80 and 
+; run straight until $FF.
+;
+; Zero Page fun.  This is assembly, dude.  No BASIC in sight anywhere.
+; No BASIC means we can get craaaazy with the second half of Page Zero.
+;
+; In fact, there's no need to have the regular game variables out in high memory.  
+; All the Byte-sized values are hereby moved to Page 0.
+;
+;===============================================================================
 
 PARAM_00 = $D4 ; ZMR_ROBOTO  -- Is Mr Roboto playing the automatic demo mode? init 1/yes
 PARAM_01 = $D6 ; ZDIR_X      -- +1 Right, -1 Left.  Indicates direction of travel.
 PARAM_02 = $D7 ; ZDIR_Y      -- +1 Down, -1 Up.  Indicates direction of travel.
-PARAM_03 = $D8 ; ZCOLLISION  -- Is Brick present at tested location? 0 = no, 1 = yes
-PARAM_04 = $D9 ; ZBRICK_LINE -- coord_Y reduced to line 1-8
-PARAM_05 = $DA ; ZBRICK_COL  -- coord_X reduced to brick number 1-14
-PARAM_06 = $DB ; ZCOORD_Y    -- coord_Y for collision check
-PARAM_07 = $DC ; ZCOORD_X    -- coord_X for collision check  
-PARAM_08 = $DD ;   
-;
-; And more Zero Page fun.  This is assembly, dude.  No BASIC in sight anywhere.
-; No BASIC means we can get craaaazy with the second half of Page Zero.
-;
-; In fact, there's no need to have the regular game variables out in high memory.  
-; For starters, all the Byte-sized values are hereby moved to Page 0.
-;
+
+PARAM_06 = $DC ; V_TEMP_ROW   -- VBI: Temporary Boom Block Row
+PARAM_07 = $DD ; V_TEMP_CYCLE -- VBI: Temporary Boom Block Cycle
+
 PARAM_09 = $80 ; TITLE_STOP_GO - set by mainline to indicate title is working or not.
 
 PARAM_10 = $81 ; TITLE_PLAYING - flag indicates title animation stage in progress. 
@@ -272,21 +277,34 @@ PARAM_80 = $c7 ; TITLE_SLOW_ME_CLOCK - frame clock to slow title stages.
 ;===============================================================================
 PARAM_81 = $c8 ; TITLE_COLOR_COUNTER_CLOCK - frame clock to slow color gradient
 PARAM_82 = $c9 ; ENABLE_THUMPER - should have thought of this earlier.
-PARAM_83 = $ca ;    
-PARAM_84 = $cb ; 
-PARAM_85 = $cc ;    
-PARAM_86 = $cd ; 
-PARAM_87 = $ce ; 
-PARAM_88 = $cf ; DIAG_SLOW_ME_CLOCK
-PARAM_89 = $d0 ; DIAG_TEMP1
 
-ZEROPAGE_POINTER_1 = $DE ; 
-ZEROPAGE_POINTER_2 = $E0 ; 
+PARAM_83 = $ca ; ZCOLLISION  -- Is Brick present at tested location? 0 = no, 1 = yes
+PARAM_84 = $cb ; ZBRICK_LINE -- coord_Y reduced to line 1-8
+PARAM_85 = $cc ; ZBRICK_COL  -- coord_X reduced to brick number 1-14
+PARAM_86 = $cd ; ZCOORD_Y    -- coord_Y for collision check
+PARAM_87 = $ce ; ZCOORD_X    -- coord_X for collision check 
+PARAM_88 = $cf ; V_15FPS_TICKER -- When this is 0, then 1/4 tick events occur.
+PARAM_89 = $d0 ; M_TEMP1  -- local temporary value
+PARAM_90 = $d1 ; DIAG_BRICK_Y - remember Y for looping brick destruction 
+PARAM_91 = $d2 ; DIAG_BRICK_X - remember X for looping brick destruction
+PARAM_92 = $d3 ; DIAG_SLOW_ME_CLOCK
+PARAM_93 = $d5 ; DIAG_TEMP1
+
+PARAM_94 = $D8 ; MAIN: Direction Index
+PARAM_95 = $D9 ; MAIN: Speed Index
+PARAM_96 = $DA ; MAIN: Delay Index
+PARAM_97 = $DB ; MAIN: Temporary SAVE/PHA
+
+
+PARAM_98 = $DE ; V_20FPS_TICKER -- When this is 0, then 1/3 tick events occur.
+PARAM_99 = $DF ; V_30FPS_TICKER -- When this is 0, then 1/2 tick events occur
+
+ZEROPAGE_POINTER_2 = $E0 ;
 ZEROPAGE_POINTER_3 = $E2 ; 
 ZEROPAGE_POINTER_4 = $E4 ; 
-ZEROPAGE_POINTER_5 = $E6 ; 
-ZEROPAGE_POINTER_6 = $E8 ; 
-ZEROPAGE_POINTER_7 = $EA ; 
+ZEROPAGE_POINTER_5 = $E6 ;
+ZEROPAGE_POINTER_6 = $E8 ;
+ZEROPAGE_POINTER_7 = $EA ; ZTEMP_PMADR   -- VBI uses for boom block image target 
 ZEROPAGE_POINTER_8 = $EC ; ZBRICK_BASE   -- Pointer to start of bricks on a line.
 ZEROPAGE_POINTER_9 = $EE ; ZTITLE_COLPM0 -- VBI sets for DLI to use
 
@@ -302,16 +320,23 @@ ZDIR_X =      PARAM_01 ; +1 Right, -1 Left.  Indicates direction of travel.
  
 ZDIR_Y =      PARAM_02 ; +1 Down, -1 Up.  Indicates direction of travel.
 
-ZCOLLISION =  PARAM_03 ; Is Brick present at tested location? 0 = no, 1 = yes
 
-ZBRICK_LINE = PARAM_04 ; Ycoord reduced to line 1-8
+ZCOLLISION =  PARAM_83 ; Is Brick present at tested location? 0 = no, 1 = yes
 
-ZBRICK_COL =  PARAM_05 ; Xcoord reduced to brick number 1-14
+ZBRICK_LINE = PARAM_84 ; Ycoord reduced to line 1-8
 
-ZCOORD_Y =    PARAM_06 ; Ycoord for collision check
+ZBRICK_COL =  PARAM_85 ; Xcoord reduced to brick number 1-14
 
-ZCOORD_XP =   PARAM_07 ; Xcoord for collision check  
+ZCOORD_Y =    PARAM_86 ; Ycoord for collision check
 
+ZCOORD_XP =   PARAM_87 ; Xcoord for collision check  
+
+
+V_15FPS_TICKER = PARAM_88 ; count 0, 1, 2, 3, 0, 1, 2, 3... 0 triggers animation events.
+
+V_20FPS_TICKER = PARAM_98 ; count 0, 1, 2, 0, 1, 2... 0 triggers animation events.
+
+V_30FPS_TICKER = PARAM_99 ; count 0, 1, 0, 1... 0 triggers animation events.
 
 ; flag when timer counted (29 sec). Used on the
 ; title and game over  and auto play screens. When auto_wait
@@ -326,9 +351,24 @@ ZBRICK_POINTS = PARAM_78 ; .byte $00
 ZBALL_COUNT =   PARAM_79 ; .byte $05
 
 
+ZTEMP_PMADR =   ZEROPAGE_POINTER_7 ; $EA - VBI uses for boom block image target 
+
 ZBRICK_BASE =   ZEROPAGE_POINTER_8 ; $EC - Pointer to start of bricks on a line.
 
 ZTITLE_COLPM0 = ZEROPAGE_POINTER_9 ; $EE - VBI sets for DLI to use
+
+
+V_TEMP_ROW =   PARAM_06 ; = $DC ; -- VBI: Temporary Boom Block Row
+V_TEMP_CYCLE = PARAM_07 ; = $DD ; -- VBI: Temporary Boom Block Cycle
+
+
+M_DIRECTION_INDEX = PARAM_94 ; = $D8 ; MAIN: Direction Index
+M_SPEED_INDEX =     PARAM_95 ; = $D9 ; MAIN: Speed Index
+M_DELAY_INDEX =     PARAM_96 ; = $DA ; MAIN: Delay Index
+M_TEMP_PHA =        PARAM_97 ; = $DB ; MAIN: Temporary SAVE/PHA
+
+M_TEMP1 = PARAM_89 ; = $d0 ;   -- local temporary value
+
 
 
 
@@ -440,7 +480,7 @@ DIAG_SLOW_ME_CLOCK = PARAM_88 ; = $cf ; DIAG_SLOW_ME_CLOCK
 	.byte 0,0,0 ; 0 is no animation. VBI Sets DLI vector for this.
 
 	*= THUMPER_FRAME_LIMIT  
-	.byte 16,16,16 ; at this limit return animation frame to 0 
+	.byte 11,11,11 ; at this limit return animation frame to 0 
 
 	*= THUMPER_COLOR
 	.byte $02,$02,$02
@@ -750,11 +790,11 @@ THUMPER_FRAME5
 ; THUMPER BUMPER SECTION: NORMAL
 ; color 1 = horizontal/top bumper.
 ; Player 3 = Left bumper 
-; Missile (5th Player) = Right Bumper
+; Player 2 = Right Bumper
 ;-------------------------------------------
-; COLPF0, COLPM0, COLPF3
-; HPOSP3, HPOSM0
-; SIZEP3, SIZEM0
+; COLPF0, COLPM3, COLPM2
+; HPOSP3, HPOSP2
+; SIZEP3, SIZEP3
 ;-------------------------------------------
 
 	; Scan line 42,      screen line 35,         One blank scan lines
@@ -768,17 +808,17 @@ THUMPER_FRAME5
 ;-------------------------------------------
 ; PLAYFIELD SECTION: NORMAL
 ; color 1 = bricks
-; Player 0 = Ball 
+; Missile 3 (5th Player) = BALL 
+; Player 0 = boom-o-matic animation 1
 ; Player 1 = boom-o-matic animation 1
-; Player 2 = boom-o-matic animation 1
 ;-------------------------------------------
 ;    and already set earlier:
 ; Player 3 = Left bumper 
 ; Missile 0 (5th Player) = Right Bumper
 ;-------------------------------------------
-; COLPF0, COLPM0, COLPM1, COLPM2
-; HPOSP0, HPOSP1, HPOSP2
-; SIZEP0, SIZEP1, SIZEP2
+; COLPF0, COLPM0, COLPM1, COLPF3
+; HPOSP0, HPOSP1, HPOSM3
+; SIZEP0, SIZEP1, SIZEM3
 ; VSCROLL
 ;-------------------------------------------
 
@@ -802,9 +842,9 @@ THUMPER_FRAME5
 ; Color 2 = text
 ; Color 3 = text background
 ;    and already set earlier:
-; Player 0 = Ball 
+; Missile 3 (5th Player) = BALL
 ; Player 3 = Left bumper 
-; Missile (5th Player) = Right Bumper
+; Player 2 = Right Bumper
 ;-------------------------------------------
 ; COLPF1, COLPF2
 ; CHBASE
@@ -828,7 +868,7 @@ THUMPER_FRAME5
 ; Player 2 = Paddle
 ; Player 3 = Paddle
 ;    and already set earlier:
-; Player 0 = Ball 
+; Missile 3 (5th Player) = BALL
 ;-------------------------------------------
 ; COLPM1, COLPM2, COLPM3
 ;-------------------------------------------
@@ -1047,17 +1087,12 @@ THUMPER_HORIZ_ANIM_TABLE
 	.byte <THUMPER_FRAME_WAIT
 	.byte <THUMPER_FRAME1
 	.byte <THUMPER_FRAME1
-	.byte <THUMPER_FRAME1
-	.byte <THUMPER_FRAME2
 	.byte <THUMPER_FRAME2
 	.byte <THUMPER_FRAME2
 	.byte <THUMPER_FRAME3
 	.byte <THUMPER_FRAME3
-	.byte <THUMPER_FRAME3
 	.byte <THUMPER_FRAME4
 	.byte <THUMPER_FRAME4
-	.byte <THUMPER_FRAME4
-	.byte <THUMPER_FRAME5
 	.byte <THUMPER_FRAME5
 	.byte <THUMPER_FRAME5
 
@@ -1069,31 +1104,21 @@ THUMPER_LEFT_HPOS_TABLE
 	.byte MIN_PIXEL_X-1 ; Waiting for Proximity 
 	.byte MIN_PIXEL_X-4
 	.byte MIN_PIXEL_X-4
-	.byte MIN_PIXEL_X-4
-	.byte MIN_PIXEL_X-5
-	.byte MIN_PIXEL_X-5
 	.byte MIN_PIXEL_X-5
 	.byte MIN_PIXEL_X-5
 	.byte MIN_PIXEL_X-5
 	.byte MIN_PIXEL_X-5
 	.byte MIN_PIXEL_X-6
 	.byte MIN_PIXEL_X-6
-	.byte MIN_PIXEL_X-6
 	.byte MIN_PIXEL_X-7
 	.byte MIN_PIXEL_X-7
-	.byte MIN_PIXEL_X-7
-	
+
 THUMPER_LEFT_SIZE_TABLE
 	.byte ~00000000 ; Waiting for Proximity 
 	.byte ~00000011 
 	.byte ~00000011 
-	.byte ~00000011 
 	.byte ~00000001
 	.byte ~00000001
-	.byte ~00000001
-	.byte ~00000000
-	.byte ~00000000
-	.byte ~00000000
 	.byte ~00000000
 	.byte ~00000000
 	.byte ~00000000
@@ -1109,17 +1134,12 @@ THUMPER_RIGHT_HPOS_TABLE
 	.byte MAX_PIXEL_X+1 ; Waiting for Proximity 
 	.byte MAX_PIXEL_X+1
 	.byte MAX_PIXEL_X+1
-	.byte MAX_PIXEL_X+1
-	.byte MAX_PIXEL_X+4
 	.byte MAX_PIXEL_X+4
 	.byte MAX_PIXEL_X+4
 	.byte MAX_PIXEL_X+5
 	.byte MAX_PIXEL_X+5
-	.byte MAX_PIXEL_X+5
 	.byte MAX_PIXEL_X+6
 	.byte MAX_PIXEL_X+6
-	.byte MAX_PIXEL_X+6
-	.byte MAX_PIXEL_X+7
 	.byte MAX_PIXEL_X+7
 	.byte MAX_PIXEL_X+7
 
@@ -1127,13 +1147,8 @@ THUMPER_RIGHT_SIZE_TABLE
 	.byte ~00000000 ; Waiting for Proximity 
 	.byte ~11000000
 	.byte ~11000000
-	.byte ~11000000
 	.byte ~01000000
 	.byte ~01000000
-	.byte ~01000000
-	.byte ~00000000
-	.byte ~00000000
-	.byte ~00000000
 	.byte ~00000000
 	.byte ~00000000
 	.byte ~00000000
@@ -1260,6 +1275,34 @@ Breakout_VBI
 	lda #>DISPLAY_LIST_INTERRUPT
 	sta VDSLST+1
 
+
+; ==============================================================
+; MAINTAIN SUB-60 FPS TICKERS
+; ==============================================================
+	;
+	; 30 FPS...  tick off 0, 1, 0, 1, 0, 1...
+	;
+	inc V_30FPS_TICKER
+	lda V_30FPS_TICKER
+	and #~00000001
+	sta V_30FPS_TICKER
+	;
+	; 20 FPS... tick 2, 1, 0, 2, 1, 0... a bit differently  
+	;
+	lda V_20FPS_TICKER
+	bne Skip_20FPS_Reset
+	lda #~00000100 ; #4  which becomes 2 in this iteration, then 1, then 0
+Skip_20FPS_Reset
+	lsr A 
+	sta V_20FPS_TICKER
+	;
+	; 15 FPS... tick off 0, 1, 2, 3, 0, 1, 2, 3...
+	;
+	inc V_15FPS_TICKER
+	lda V_15FPS_TICKER
+	and #~00000011
+	sta V_15FPS_TICKER
+	
 	
 ; ==============================================================
 ; TITLE FLY IN
@@ -1278,8 +1321,6 @@ End_Title
 ;	lda TITLE_HPOSP0
 ;	sta HPOSP0
 
-
-
 	
 	
 ; ==============================================================
@@ -1290,18 +1331,18 @@ End_Title
 	lda #0
 	ldy BALL_CURRENT_Y
 ;	
-	sta PMADR_BASE0,y
+	sta PMADR_MISSILE,y
 	iny
-	sta PMADR_BASE0,y
+	sta PMADR_MISSILE,y
 	
 	
 	lda #$C0 ; The Ball
 	ldy BALL_NEW_Y
 	sty BALL_CURRENT_Y
 	
-	sta PMADR_BASE0,y
+	sta PMADR_MISSILE,y
 	iny
-	sta PMADR_BASE0,y
+	sta PMADR_MISSILE,y
 	
 ; 
 ; and set the next current position.
@@ -1376,6 +1417,9 @@ Thumper_Animator_VBI
 ; is in progress.)
 
 	ldx #0 ; Thumper type 0 = horizontal, 1 = left, 2 = right
+
+; Allow first proximity frame to be set at any time, 
+; but further animation occurs on the 20FPS clock.
 	
 Loop_Next_Thumper	
 	lda THUMPER_PROXIMITY,X     ; X lets us loop for Top, Left, and Right
@@ -1388,10 +1432,13 @@ Loop_Next_Thumper
 	bne Update_Thumper_Frame
 	
 Check_Thumper_Anim 	
+	lda V_20FPS_TICKER          ; Has 20FPS clock ticked to 0?
+	bne End_Thumper_Bumper_VBI  ; No. Do not continue frame advance.
+
 	ldy THUMPER_FRAME,x         ; Is Anim in progress? 
 	bne Thumper_Frame_Inc       ; Yes. no proximity color change.
 	                            ; No animation running.
-	cmp #16                      ; Is proximity 0 to 15?
+	cmp #16                     ; Is proximity 0 to 15?
 	bcs Next_Thumper_Bumper     ; No. Too far away. No change.
 	                              ; Proximity! Force field reaction! 
 	tay                           ; Turn proximity into ...
@@ -1485,8 +1532,8 @@ DLI_2
 	tya
 	pha
 
-	; GTIA Fifth Player.
-	lda #[FIFTH_PLAYER|1] ; Missiles = COLPF3.  Player/Missiles Priority on top.
+	; GTIA Fifth Player/Missiles = COLPF3. Priority: PM0/1, Playfield, PM2/3
+	lda #[FIFTH_PLAYER|2] 
 	sta PRIOR
 	sta HITCLR
 
@@ -1510,24 +1557,24 @@ DLI_2
 	lda THUMPER_LEFT_SIZE_TABLE,y ; P/M size
 	sta SIZEP3
 
-	; Right thumper-bumper -- Missile 3.  Set P/M color, position, and size.
+	; Right thumper-bumper -- Player 2.  Set P/M color, position, and size.
 	lda THUMPER_COLOR_RIGHT
-	sta COLPF3 ; because 5th player is enabled.
+	sta COLPM2 ; because 5th player is enabled.
 
 	ldy THUMPER_FRAME_RIGHT        ; Get animation frame
 	lda THUMPER_RIGHT_HPOS_TABLE,y ; P/M position
-	sta HPOSM3
+	sta HPOSP2
 	lda THUMPER_RIGHT_SIZE_TABLE,y ; P/M size
-	sta SIZEM
+	sta SIZEP2
 
 
-	; Establish the ball.
+	; Establish the ball. Missile 3.
 	
 	lda BALL_COLOR
-	sta COLPM0
+	sta COLPF3
 	
 	lda BALL_HPOS
-	sta HPOSP0
+	sta HPOSM3
 	
 End_DLI_2 ; End of routine.  Point to next routine.
 	lda #<DLI_3
@@ -1926,9 +1973,9 @@ Setup
 	sta PMBASE
 	;
 	; Set Missiles = 5th Player (COLPF3)
-	; Set Priority with Players/Missiles on top
+	; Set Priority with P0/P1 on top, then Playfield, then PM2/PM3 on bottom.
 	;
-	lda #[FIFTH_PLAYER|1]  
+	lda #[FIFTH_PLAYER|2]  
 	sta GPRIOR
 
 	lda #[ENABLE_PLAYERS|ENABLE_MISSILES]
@@ -1946,7 +1993,7 @@ Setup
 	lda #$80
 ?Init_Vertical_Thumpers
 	sta PMADR_BASE3,x
-	sta PMADR_MISSILE,x
+	sta PMADR_BASE2,x
 	inx
 	cpx #MAX_PIXEL_Y
 	bne ?Init_Vertical_Thumpers
