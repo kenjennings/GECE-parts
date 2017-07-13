@@ -666,11 +666,11 @@ DIAG_TEMP1 = PARAM_93 ; = $d5 ; DIAG_TEMP1
 ; Using 2K boundary for single-line 
 ; resolution Player/Missiles
 PLAYER_MISSILE_BASE
-PMADR_MISSILE = [PLAYER_MISSILE_BASE+$300]
-PMADR_BASE0 =   [PLAYER_MISSILE_BASE+$400]
-PMADR_BASE1 =   [PLAYER_MISSILE_BASE+$500]
-PMADR_BASE2 =   [PLAYER_MISSILE_BASE+$600]
-PMADR_BASE3 =   [PLAYER_MISSILE_BASE+$700]
+PMADR_MISSILE = [PLAYER_MISSILE_BASE+$300] ; Ball.                            Ball counter.
+PMADR_BASE0 =   [PLAYER_MISSILE_BASE+$400] ; Flying text. Boom brick. Paddle. Ball Counter.
+PMADR_BASE1 =   [PLAYER_MISSILE_BASE+$500] ;              Boom Brick. Paddle. Ball Counter.
+PMADR_BASE2 =   [PLAYER_MISSILE_BASE+$600] ; Thumper.                 Paddle. Ball Counter.
+PMADR_BASE3 =   [PLAYER_MISSILE_BASE+$700] ; Thumper.                 Paddle. Ball Counter.
 
 ; Align to the boundary after Player/missile bitmaps
 ; ( *= $8800 )
@@ -932,7 +932,7 @@ GAMEOVER_LINE7
 ;-------------------------------------------
 ; COLPF0, COLPM3, COLPM2
 ; HPOSP3, HPOSP2
-; SIZEP3, SIZEP3
+; SIZEP3, SIZEP2
 ;-------------------------------------------
 
 	; Scan line 42,      screen line 35,         One blank scan lines
@@ -952,7 +952,7 @@ GAMEOVER_LINE7
 ;-------------------------------------------
 ;    and already set earlier:
 ; Player 3 = Left bumper 
-; Missile 0 (5th Player) = Right Bumper
+; Player 2 = Right Bumper
 ;-------------------------------------------
 ; COLPF0, COLPM0, COLPM1, COLPF3
 ; HPOSP0, HPOSP1, HPOSM3
@@ -980,7 +980,7 @@ GAMEOVER_LINE7
 ; Color 2 = text
 ; Color 3 = text background
 ;    and already set earlier:
-; Missile 3 (5th Player) = BALL
+; Missile 3 (5th Player) = Ball
 ; Player 3 = Left bumper 
 ; Player 2 = Right Bumper
 ;-------------------------------------------
@@ -1020,7 +1020,7 @@ GAMEOVER_LINE7
 ; Player 1 == Sine Wave Balls
 ; Player 2 == Sine Wave Balls.
 ; Player 3 == Sine Wave Balls
-; Missile 0 == Sine Wave Balls
+; Missile 3 == Sine Wave Balls
 ; Mode 6 color text for score.
 ; Color 1  == "BALLS" 
 ; Color 2  == score
@@ -1047,7 +1047,7 @@ GAMEOVER_LINE7
 ; Forcing the Display list to a 1K boundary 
 ; is mild overkill.  Display Lists even as funky
 ; as this one are fairly short. 
-; Alignment to the next Page is sufficient insurance 
+; Alignment to the next 256 byte Page is sufficient insurance 
 ; preventing the display list from crossing over 
 ; the next 1K boundary.
 
@@ -2587,7 +2587,7 @@ End_Brick_Scroll_Update
 ;===============================================================================
 ; BOOM-O-MATIC
 ;===============================================================================
-; Players 1 and 2 implement a Boom animation for bricks knocked out.
+; Players 0 and 1 implement a Boom animation for bricks knocked out.
 ; The animation overlays the destroyed brick with a rectangle two scan 
 ; lines taller and and two color clocks wider than the brick.  This is 
 ; centered on the brick providing a first frame impression that the brick 
@@ -2615,6 +2615,19 @@ End_Brick_Scroll_Update
 	lda ENABLE_BOOM
 	bne Add_New_Boom
 	; No boom. MAIN should have zero'd all HPOS and animation states.
+	; Like this....
+	; Maybe MAIN should do this after dsabling the boom bricks.
+	;
+	ldx #7
+	lda #0
+Clear_Boom
+	sta BOOM_1_HPOS,x
+	sta BOOM_2_HPOS,x
+	sta BOOM_1_CYCLE,x
+	sta BOOM_2_CYCLE,x
+	dex 
+	bpl Clear_Boom
+	
 	jmp End_Boom_O_Matic
 
 	; !!! NEW RULES FOR NEW BOOM !!!   
@@ -2671,7 +2684,7 @@ Next_Boom_Test
 ; could be added for three frames before any animation occurs.
 ;  
 ; (In a better world, this should be modified to apply the first 
-; frame animation on the same frame whrn the request is made, and 
+; frame animation on the same frame when the request is made, and 
 ; and then apply 20fps updates to that afterwards.)
 ;	
 ; ****************
