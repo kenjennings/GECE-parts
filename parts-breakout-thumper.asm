@@ -480,7 +480,7 @@ DIAG_SLOW_ME_CLOCK = PARAM_88 ; = $cf ; DIAG_SLOW_ME_CLOCK
 	.byte 0,0,0 ; 0 is no animation. VBI Sets DLI vector for this.
 
 	*= THUMPER_FRAME_LIMIT  
-	.byte 11,11,11 ; at this limit return animation frame to 0 
+	.byte 6,6,6 ; at this limit return animation frame to 0 
 
 	*= THUMPER_COLOR
 	.byte $02,$02,$02
@@ -543,11 +543,11 @@ DIAG_SLOW_ME_CLOCK = PARAM_88 ; = $cf ; DIAG_SLOW_ME_CLOCK
 ; Using 2K boundary for single-line 
 ; resolution Player/Missiles
 PLAYER_MISSILE_BASE
-PMADR_MISSILE = [PLAYER_MISSILE_BASE+$300]
-PMADR_BASE0 =   [PLAYER_MISSILE_BASE+$400]
-PMADR_BASE1 =   [PLAYER_MISSILE_BASE+$500]
-PMADR_BASE2 =   [PLAYER_MISSILE_BASE+$600]
-PMADR_BASE3 =   [PLAYER_MISSILE_BASE+$700]
+PMADR_MISSILE = [PLAYER_MISSILE_BASE+$300] ; Ball.                            Ball counter.
+PMADR_BASE0 =   [PLAYER_MISSILE_BASE+$400] ; Flying text. Boom brick. Paddle. Ball Counter.
+PMADR_BASE1 =   [PLAYER_MISSILE_BASE+$500] ;              Boom Brick. Paddle. Ball Counter.
+PMADR_BASE2 =   [PLAYER_MISSILE_BASE+$600] ; Thumper.                 Paddle. Ball Counter.
+PMADR_BASE3 =   [PLAYER_MISSILE_BASE+$700] ; Thumper.                 Paddle. Ball Counter.
 
 ; Align to the boundary after Player/missile bitmaps
 ; ( *= $8800 )
@@ -794,7 +794,7 @@ THUMPER_FRAME5
 ;-------------------------------------------
 ; COLPF0, COLPM3, COLPM2
 ; HPOSP3, HPOSP2
-; SIZEP3, SIZEP3
+; SIZEP3, SIZEP2
 ;-------------------------------------------
 
 	; Scan line 42,      screen line 35,         One blank scan lines
@@ -814,7 +814,7 @@ THUMPER_FRAME5
 ;-------------------------------------------
 ;    and already set earlier:
 ; Player 3 = Left bumper 
-; Missile 0 (5th Player) = Right Bumper
+; Player 2 = Right Bumper
 ;-------------------------------------------
 ; COLPF0, COLPM0, COLPM1, COLPF3
 ; HPOSP0, HPOSP1, HPOSM3
@@ -842,7 +842,7 @@ THUMPER_FRAME5
 ; Color 2 = text
 ; Color 3 = text background
 ;    and already set earlier:
-; Missile 3 (5th Player) = BALL
+; Missile 3 (5th Player) = Ball
 ; Player 3 = Left bumper 
 ; Player 2 = Right Bumper
 ;-------------------------------------------
@@ -882,7 +882,7 @@ THUMPER_FRAME5
 ; Player 1 == Sine Wave Balls
 ; Player 2 == Sine Wave Balls.
 ; Player 3 == Sine Wave Balls
-; Missile 0 == Sine Wave Balls
+; Missile 3 == Sine Wave Balls
 ; Mode 6 color text for score.
 ; Color 1  == "BALLS" 
 ; Color 2  == score
@@ -909,7 +909,7 @@ THUMPER_FRAME5
 ; Forcing the Display list to a 1K boundary 
 ; is mild overkill.  Display Lists even as funky
 ; as this one are fairly short. 
-; Alignment to the next Page is sufficient insurance 
+; Alignment to the next 256 byte Page is sufficient insurance 
 ; preventing the display list from crossing over 
 ; the next 1K boundary.
 
@@ -1075,83 +1075,52 @@ DISPLAY_LIST_THUMPER_RTS ; destination for animation routine return.
 ;-------------------------------------------
 ; color 1 = horizontal/top bumper.
 ; Player 3 = Left bumper 
-; Missile (5th Player) = Right Bumper
+; Player 2 = Right Bumper
 ;-------------------------------------------
 ; COLPF0, 
-; COLPM3, COLPF3
-; HPOSP3, HPOSM0
-; SIZEP3, SIZEM0
+; COLPM3, COLPM2
+; HPOSP3, HPOSP2
+; SIZEP3, SIZEP2
 ;-------------------------------------------
 
 THUMPER_HORIZ_ANIM_TABLE
 	.byte <THUMPER_FRAME_WAIT
 	.byte <THUMPER_FRAME1
-	.byte <THUMPER_FRAME1
-	.byte <THUMPER_FRAME2
 	.byte <THUMPER_FRAME2
 	.byte <THUMPER_FRAME3
-	.byte <THUMPER_FRAME3
 	.byte <THUMPER_FRAME4
-	.byte <THUMPER_FRAME4
-	.byte <THUMPER_FRAME5
 	.byte <THUMPER_FRAME5
 
 ; Player 3 -- LEFT Vertical Thumper sequence
-; Lists establish HPOS and SIZE for DLI2.
+; Lists establish HPOS for DLI2.
 ; entry 0 is waiting state.
 ;
 THUMPER_LEFT_HPOS_TABLE
 	.byte MIN_PIXEL_X-1 ; Waiting for Proximity 
 	.byte MIN_PIXEL_X-4
-	.byte MIN_PIXEL_X-4
-	.byte MIN_PIXEL_X-5
-	.byte MIN_PIXEL_X-5
 	.byte MIN_PIXEL_X-5
 	.byte MIN_PIXEL_X-5
 	.byte MIN_PIXEL_X-6
-	.byte MIN_PIXEL_X-6
-	.byte MIN_PIXEL_X-7
 	.byte MIN_PIXEL_X-7
 
-THUMPER_LEFT_SIZE_TABLE
-	.byte ~00000000 ; Waiting for Proximity 
-	.byte ~00000011 
-	.byte ~00000011 
-	.byte ~00000001
-	.byte ~00000001
-	.byte ~00000000
-	.byte ~00000000
-	.byte ~00000000
-	.byte ~00000000
-	.byte ~00000000
-	.byte ~00000000
-
-; Missile 3 -- RIGHT Vertical Thumper sequence
-; Lists establish HPOS and SIZE for DLI2.
+; Player 2 -- RIGHT Vertical Thumper sequence
+; Lists establish HPOS for DLI2.
 ; entry 0 is waiting state.
 ;
 THUMPER_RIGHT_HPOS_TABLE
 	.byte MAX_PIXEL_X+1 ; Waiting for Proximity 
 	.byte MAX_PIXEL_X+1
-	.byte MAX_PIXEL_X+1
-	.byte MAX_PIXEL_X+4
 	.byte MAX_PIXEL_X+4
 	.byte MAX_PIXEL_X+5
-	.byte MAX_PIXEL_X+5
 	.byte MAX_PIXEL_X+6
-	.byte MAX_PIXEL_X+6
-	.byte MAX_PIXEL_X+7
 	.byte MAX_PIXEL_X+7
 
-THUMPER_RIGHT_SIZE_TABLE
+; Player size for both animations.
+;
+THUMPER_SIZE_TABLE
 	.byte ~00000000 ; Waiting for Proximity 
-	.byte ~11000000
-	.byte ~11000000
-	.byte ~01000000
-	.byte ~01000000
-	.byte ~00000000
-	.byte ~00000000
-	.byte ~00000000
+	.byte ~00000011 
+	.byte ~00000001
 	.byte ~00000000
 	.byte ~00000000
 	.byte ~00000000
@@ -1432,8 +1401,8 @@ Loop_Next_Thumper
 	bne Update_Thumper_Frame
 	
 Check_Thumper_Anim 	
-	lda V_20FPS_TICKER          ; Has 20FPS clock ticked to 0?
-	bne End_Thumper_Bumper_VBI  ; No. Do not continue frame advance.
+	lda V_20FPS_TICKER          ; If the 20FPS clock has not ticked to 0...
+	bne Next_Thumper_Bumper     ; then do not advance frame. Skip to next bumper check.
 
 	ldy THUMPER_FRAME,x         ; Is Anim in progress? 
 	bne Thumper_Frame_Inc       ; Yes. no proximity color change.
@@ -1532,12 +1501,14 @@ DLI_2
 	tya
 	pha
 
-	; GTIA Fifth Player/Missiles = COLPF3. Priority: PM0/1, Playfield, PM2/3
+	; GTIA Fifth Player/Missiles = COLPF3. Priority 2 = PM0/1, Playfield, PM2/3
 	lda #[FIFTH_PLAYER|2] 
 	sta PRIOR
-	sta HITCLR
+	sta HITCLR ; in case we use P/M collision detection in the playfield.
 
-	; Screen parameters...
+	; Screen parameters... 
+	; need full width screen for thumper/brick sections.
+	;
 	lda #[ENABLE_DL_DMA|ENABLE_PM_DMA|PLAYFIELD_WIDTH_NORMAL|PM_1LINE_RESOLUTION]
 	STA WSYNC
 	sta DMACTL
@@ -1554,17 +1525,17 @@ DLI_2
 	ldy THUMPER_FRAME_LEFT        ; Get animation frame
 	lda THUMPER_LEFT_HPOS_TABLE,y ; P/M position
 	sta HPOSP3
-	lda THUMPER_LEFT_SIZE_TABLE,y ; P/M size
+	lda THUMPER_SIZE_TABLE,y ; P/M size
 	sta SIZEP3
 
 	; Right thumper-bumper -- Player 2.  Set P/M color, position, and size.
 	lda THUMPER_COLOR_RIGHT
-	sta COLPM2 ; because 5th player is enabled.
+	sta COLPM2 
 
 	ldy THUMPER_FRAME_RIGHT        ; Get animation frame
 	lda THUMPER_RIGHT_HPOS_TABLE,y ; P/M position
 	sta HPOSP2
-	lda THUMPER_RIGHT_SIZE_TABLE,y ; P/M size
+	lda THUMPER_SIZE_TABLE,y ; P/M size
 	sta SIZEP2
 
 
@@ -1813,9 +1784,11 @@ BALL_END_Y
 	bpl ?Calculate_Proximity_Left; Moving down.  Skip this.
 	clc
 	lda BALL_NEW_Y
+	adc #3            ; Add 3, so only one perfect position triggers 0 proximity.
+	sec
 	sbc #MIN_PIXEL_Y
-;	lsr a
-;	lsr a
+	lsr a             ; divide by 4...
+	lsr a             ; resulting in 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3...
 	sta THUMPER_PROXIMITY_TOP
 	
 ; Calculate proximity left only when moving left
@@ -1824,18 +1797,20 @@ BALL_END_Y
 	bpl ?Calculate_Proximity_Right ; Moving right.  Skip Left.
 	clc
 	lda BALL_NEW_X
+	adc #1            ; Add 1, so only one perfect position triggers 0 proximity
+	sec
 	sbc #MIN_BALL_X
-;	lsr a
+	lsr a             ; divide by 2 resulting in 0, 1, 1, 2, 2, 3, 3...
 	sta THUMPER_PROXIMITY_LEFT
 
 	jmp End_Calculate_Proximity
 	
 ; Calculate proximity right only when moving right
 ?Calculate_Proximity_Right
-	clc
-	lda #MAX_BALL_X
+	lda #MAX_BALL_X+1 ; Plus 1, so only one perfect position triggers 0 proximity.
+	sec
 	sbc BALL_NEW_X
-;	lsr a
+	lsr a             ; divide by 2 resulting in 0, 1, 1, 2, 2, 3, 3...
 	sta THUMPER_PROXIMITY_RIGHT
 
 End_Calculate_Proximity
@@ -1927,7 +1902,7 @@ Setup
 
 	; Be clean and tidy II. Set normal sizes.
 
-	lda #PM_SIZE_NORMAL ; Reset size for Players
+	lda #PM_SIZE_NORMAL ; Reset size for Players (should be 0)
 
 	ldx #3
 ?Normal_PM_Size
@@ -1935,7 +1910,7 @@ Setup
 	dex
 	bpl ?Normal_PM_Size
 	
-	lda #~01010101 ; 01, normal size for each missile.
+	lda #~00000000   ; 00, normal size for each missile.
 	sta SIZEM
 	
 	sta GPRIOR       ; Zero GTIA Priority
