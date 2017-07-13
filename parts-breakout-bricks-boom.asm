@@ -613,7 +613,7 @@ DIAG_TEMP1 = PARAM_93 ; = $d5 ; DIAG_TEMP1
 ;   INITIALIZE ZERO PAGE VALUES
 ;===============================================================================
 
-    *=BRICK_SCREEN_START_SCROLL ; and BRICK_SCREEN_IMMEDIATE_POSITION and BRICK_SCREEN_IN_MOTION
+    *= BRICK_SCREEN_START_SCROLL ; and BRICK_SCREEN_IMMEDIATE_POSITION and BRICK_SCREEN_IN_MOTION
     .byte 0,0,0
     
 
@@ -633,7 +633,7 @@ DIAG_TEMP1 = PARAM_93 ; = $d5 ; DIAG_TEMP1
 ; This will not be a terribly big or complicated game.  Begin after DOS/DUP.
 ; This will change in a moment when alignment is reset for Player/Missile memory.
 
-	*=$3308    
+	*= $3308    
 
 ;===============================================================================
 
@@ -661,7 +661,7 @@ DIAG_TEMP1 = PARAM_93 ; = $d5 ; DIAG_TEMP1
 
 ;	*=$8000
 
-	*=[*&$F800]+$0800
+	*= [*&$F800]+$0800
 	
 ; Using 2K boundary for single-line 
 ; resolution Player/Missiles
@@ -674,7 +674,7 @@ PMADR_BASE3 =   [PLAYER_MISSILE_BASE+$700]
 
 ; Align to the boundary after Player/missile bitmaps
 ; ( *= $8800 )
-	*=[*&$F800]+$0800
+	*= [*&$F800]+$0800
 
 ; Custom character set for Credit text window
 ; Mode 3 Custom character set. 1024 bytes
@@ -928,11 +928,11 @@ GAMEOVER_LINE7
 ; THUMPER BUMPER SECTION: NORMAL
 ; color 1 = horizontal/top bumper.
 ; Player 3 = Left bumper 
-; Missile (5th Player) = Right Bumper
+; Player 2 = Right Bumper
 ;-------------------------------------------
-; COLPF0, COLPM0, COLPF3
-; HPOSP3, HPOSM0
-; SIZEP3, SIZEM0
+; COLPF0, COLPM3, COLPM2
+; HPOSP3, HPOSP2
+; SIZEP3, SIZEP3
 ;-------------------------------------------
 
 	; Scan line 42,      screen line 35,         One blank scan lines
@@ -946,17 +946,17 @@ GAMEOVER_LINE7
 ;-------------------------------------------
 ; PLAYFIELD SECTION: NORMAL
 ; color 1 = bricks
-; Player 0 = Ball 
+; Missile 3 (5th Player) = BALL 
+; Player 0 = boom-o-matic animation 1
 ; Player 1 = boom-o-matic animation 1
-; Player 2 = boom-o-matic animation 1
 ;-------------------------------------------
 ;    and already set earlier:
 ; Player 3 = Left bumper 
 ; Missile 0 (5th Player) = Right Bumper
 ;-------------------------------------------
-; COLPF0, COLPM0, COLPM1, COLPM2
-; HPOSP0, HPOSP1, HPOSP2
-; SIZEP0, SIZEP1, SIZEP2
+; COLPF0, COLPM0, COLPM1, COLPF3
+; HPOSP0, HPOSP1, HPOSM3
+; SIZEP0, SIZEP1, SIZEM3
 ; VSCROLL
 ;-------------------------------------------
 
@@ -980,9 +980,9 @@ GAMEOVER_LINE7
 ; Color 2 = text
 ; Color 3 = text background
 ;    and already set earlier:
-; Player 0 = Ball 
+; Missile 3 (5th Player) = BALL
 ; Player 3 = Left bumper 
-; Missile (5th Player) = Right Bumper
+; Player 2 = Right Bumper
 ;-------------------------------------------
 ; COLPF1, COLPF2
 ; CHBASE
@@ -1006,7 +1006,7 @@ GAMEOVER_LINE7
 ; Player 2 = Paddle
 ; Player 3 = Paddle
 ;    and already set earlier:
-; Player 0 = Ball 
+; Missile 3 (5th Player) = BALL
 ;-------------------------------------------
 ; COLPM1, COLPM2, COLPM3
 ;-------------------------------------------
@@ -1876,19 +1876,19 @@ BRICK_XPOS_RIGHT_TABLE
 ; Table for P/M Ypos of each brick top edge
 ;
 BRICK_YPOS_TOP_TABLE
-	entry .= 0
+	entry .= BRICK_TOP_OFFSET
 	.rept 8 ; repeat for 8 lines of bricks 
-	.byte [BRICK_TOP_OFFSET+[entry*BRICK_HEIGHT]]
-	entry .= entry+1 ; next entry in table.
+	.byte entry ; [BRICK_TOP_OFFSET+[entry*BRICK_HEIGHT]]
+	entry .= entry+BRICK_HEIGHT ; next entry in table.
 	.endr
 ;
 ; Table for P/M Ypos of each brick bottom edge
 ;
 BRICK_YPOS_BOTTOM_TABLE
-	entry .= 0
+	entry .= BRICK_TOP_END_OFFSET
 	.rept 8 ; repeat for 8 lines of bricks 
-	.byte [BRICK_BOTTOM_OFFSET+[entry*BRICK_HEIGHT]]
-	entry .= entry+1 ; next entry in table.
+	.byte entry ; [BRICK_TOP_END_OFFSET+[entry*BRICK_HEIGHT]]
+	entry .= entry+BRICK_HEIGHT ; next entry in table.
 	.endr
 
 
@@ -1993,7 +1993,7 @@ GAMEOVER_LINE_TABLE_HI
 ;===============================================================================
 ; BOOM-O-MATIC.
 ;===============================================================================
-; Players 1 and 2 implement a Boom animation for bricks knocked out.
+; Players 0 and 1 implement a Boom animation for bricks knocked out.
 ; The animation overlays the destroyed brick with a player two scan lines 
 ; and two color clocks larger than the brick.  This is centered on the brick
 ; providing a first frame impression that the brick expands. On subsequent 
@@ -2196,24 +2196,23 @@ Breakout_VBI
 ; MAINTAIN SUB-60 FPS TICKERS
 ; ==============================================================
 	;
-	; 30 FPS
+	; 30 FPS...  tick off 0, 1, 0, 1, 0, 1...
 	;
 	inc V_30FPS_TICKER
 	lda V_30FPS_TICKER
 	and #~00000001
 	sta V_30FPS_TICKER
 	;
-	; 20 FPS - 0, 1, 2, can't be AND masked.  
+	; 20 FPS... tick 2, 1, 0, 2, 1, 0... a bit differently  
 	;
-	inc V_20FPS_TICKER
 	lda V_20FPS_TICKER
-	cmp #3
 	bne Skip_20FPS_Reset
-	lda #0
+	lda #~00000100 ; #4  which becomes 2 in this iteration, then 1, then 0
+Skip_20FPS_Reset
+	lsr A 
 	sta V_20FPS_TICKER
-Skip_20FPS_Reset	
 	;
-	; 30 FPS
+	; 15 FPS... tick off 0, 1, 2, 3, 0, 1, 2, 3...
 	;
 	inc V_15FPS_TICKER
 	lda V_15FPS_TICKER
@@ -2746,7 +2745,7 @@ Boom_Animation_1
 	ldy BRICK_YPOS_TOP_TABLE,x ; Get scan line of top of row.
 	dey                        ; -1.  one line higher for exploding brick.
 	sta ZTEMP_PMADR            ; low byte for player/missile address. 
-	lda #>PMADR_BASE1          ; Player 1 Base,  
+	lda #>PMADR_BASE0          ; Player 0 Base,  
 	sta ZTEMP_PMADR+1          ; high byte.
 
 	; Get this cycle's starting animation frame.	
@@ -2829,7 +2828,7 @@ Boom_Animation_2
 	ldy BRICK_YPOS_TOP_TABLE,x ; Get scan line of top of row.
 	dey                        ; -1.  one line higher for exploding brick.
 	sta ZTEMP_PMADR            ; low byte for player/missile address. 
-	lda #>PMADR_BASE2          ; Player 1 Base,  
+	lda #>PMADR_BASE1          ; Player 1 Base,  
 	sta ZTEMP_PMADR+1          ; high byte.
 
 	; Get this cycle's starting animation frame.	
@@ -2951,8 +2950,8 @@ DLI_2
 	tya
 	pha
 
-	; GTIA Fifth Player.
-	lda #[FIFTH_PLAYER|1] ; Missiles = COLPF3.  Player/Missiles Priority on top.
+	; GTIA Fifth Player/Missiles = COLPF3. Priority: PM0/1, Playfield, PM2/3
+	lda #[FIFTH_PLAYER|2] 
 	sta PRIOR
 	sta HITCLR
 
@@ -3089,18 +3088,18 @@ DLI3_DO_BOOM_AND_BRICKS
 
 	; six store, four load after wsync.   Hope this fits. 
 	; At least there's no graphics or character set DMA on this line.
-	sta HPOSP1
-	sty HPOSP2
+	sta HPOSP0
+	sty HPOSP1
 
 	lda BOOM_1_SIZE,x
-	sta SIZEP1
+	sta SIZEP0
 	lda BOOM_2_SIZE,x
-	sta SIZEP2
+	sta SIZEP1
 
 	lda BOOM_1_COLPM,x
-	sta COLPM1
+	sta COLPM0
 	lda BOOM_2_COLPM,x
-	sta COLPM2
+	sta COLPM1
 
 	; Prep to apply color to the BRICK lines
 	ldy BRICK_CURRENT_COLOR,x
@@ -4181,6 +4180,7 @@ Setup
 	lda #~01010101 ; 01, normal size for each missile.
 	sta SIZEM
 	
+	lda #0
 	sta GPRIOR       ; Zero GTIA Priority
 
 	sta GRACTL       ; Turn off GTIA P/M data graphics control 
@@ -4216,9 +4216,9 @@ Setup
 	sta PMBASE
 	;
 	; Set Missiles = 5th Player (COLPF3)
-	; Set Priority with Players/Missiles on bottom
+	; Set Priority with P0/P1 on top, then Playfield, then PM2/PM3 on bottom.
 	;
-	lda #[FIFTH_PLAYER|~00000100]  
+	lda #[FIFTH_PLAYER|~0000010]  
 	sta GPRIOR
 
 	lda #[ENABLE_PLAYERS|ENABLE_MISSILES]
@@ -4236,7 +4236,7 @@ Setup
 	lda #$80
 ?Init_Vertical_Thumpers
 	sta PMADR_BASE3,x
-	sta PMADR_MISSILE,x
+	sta PMADR_BASE2,x
 	inx
 	cpx #MAX_PIXEL_Y
 	bne ?Init_Vertical_Thumpers
@@ -4481,14 +4481,14 @@ Diag_DestroyBricks1
 	jsr DestroyBrick ; Remove Brick at X, Y position
 	
     ; --------------------------------
-	txa                         ; Transfer Brick number to Accumulator
+	txa                       ; Transfer Brick number to Accumulator
 	sta BOOM_REQUEST_BRICK,y  ; Store brick number in the boom request for this row
-	lda #1                      ; Raise flag to VBI that this row has a brick 
+	lda #1                    ; Raise flag to VBI that this row has a brick 
 	sta BOOM_REQUEST,y        ; ready to enter in the boom cycle animations.
 	; --------------------------------
 	
 	txa              ; save brick number temporarily.
-	ldx #3   
+	ldx #3  
 	jsr WaitFrames   ; Pause for X frames
 	tax              ; get Brick number back.
 	
@@ -4522,9 +4522,9 @@ Diag_DestroyBricks2
 	jsr DestroyBrick ; Remove Brick at X, Y position
 	
     ; --------------------------------
-	txa                         ; Transfer Brick number to Accumulator
+	txa                       ; Transfer Brick number to Accumulator
 	sta BOOM_REQUEST_BRICK,y  ; Store brick number in the boom request for this row
-	lda #1                      ; Raise flag to VBI that this row has a brick 
+	lda #1                    ; Raise flag to VBI that this row has a brick 
 	sta BOOM_REQUEST,y        ; ready to enter in the boom cycle animations.
 	; --------------------------------
 	
