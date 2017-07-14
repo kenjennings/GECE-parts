@@ -299,7 +299,10 @@ PARAM_97 = $DB ; MAIN: Temporary SAVE/PHA
 PARAM_98 = $DE ; V_20FPS_TICKER -- When this is 0, then 1/3 tick events occur.
 PARAM_99 = $DF ; V_30FPS_TICKER -- When this is 0, then 1/2 tick events occur
 
-ZEROPAGE_POINTER_2 = $E0 ;
+PARAM_AA = $E0 ; V_TEMP -- Misc counter for boom bricks
+PARAM_AB = $E1
+
+
 ZEROPAGE_POINTER_3 = $E2 ; 
 ZEROPAGE_POINTER_4 = $E4 ; 
 ZEROPAGE_POINTER_5 = $E6 ;
@@ -361,6 +364,7 @@ ZTITLE_COLPM0 = ZEROPAGE_POINTER_9 ; $EE - VBI sets for DLI to use
 V_TEMP_ROW =   PARAM_06 ; = $DC ; -- VBI: Temporary Boom Block Row
 V_TEMP_CYCLE = PARAM_07 ; = $DD ; -- VBI: Temporary Boom Block Cycle
 
+V_TEMP = PARAM_AA ; $E0 -- VBI: temp counter for boom blocks
 
 M_DIRECTION_INDEX = PARAM_94 ; = $D8 ; MAIN: Direction Index
 M_SPEED_INDEX =     PARAM_95 ; = $D9 ; MAIN: Speed Index
@@ -2757,7 +2761,7 @@ Boom_Animation_1
 	;
 	ldy BRICK_YPOS_TOP_TABLE,x ; Get scan line of top of row.
 	dey                        ; -1.  one line higher for exploding brick.
-	sta ZTEMP_PMADR            ; low byte for player/missile address. 
+	sty ZTEMP_PMADR            ; low byte for player/missile address. 
 	lda #>PMADR_BASE0          ; Player 0 Base,  
 	sta ZTEMP_PMADR+1          ; high byte.
 
@@ -2840,7 +2844,7 @@ Boom_Animation_2
 	;
 	ldy BRICK_YPOS_TOP_TABLE,x ; Get scan line of top of row.
 	dey                        ; -1.  one line higher for exploding brick.
-	sta ZTEMP_PMADR            ; low byte for player/missile address. 
+	sty ZTEMP_PMADR            ; low byte for player/missile address. 
 	lda #>PMADR_BASE1          ; Player 1 Base,  
 	sta ZTEMP_PMADR+1          ; high byte.
 
@@ -4483,7 +4487,7 @@ WaitForScroll
 
 Diag_DestroyBricks1
 
-	ldx #13 ; Bricks in the row. 13 to 0
+	ldx #10 ; Bricks in the row. 13 to 0
 
 ?Next_Brick
 
@@ -4500,37 +4504,55 @@ Diag_DestroyBricks1
 	sta BOOM_REQUEST,y        ; ready to enter in the boom cycle animations.
 	; --------------------------------
 	
+	dex
+	dex 
+	
 	txa              ; save brick number temporarily.
-	ldx #3  
+	ldx #5
 	jsr WaitFrames   ; Pause for X frames
 	tax              ; get Brick number back.
+
+    tya 
+    eor #~00000111
+    tay
+    
+	jsr DestroyBrick ; Remove Brick at X, Y position
+	
+    ; --------------------------------
+	txa                       ; Transfer Brick number to Accumulator
+	sta BOOM_REQUEST_BRICK,y  ; Store brick number in the boom request for this row
+	lda #1                    ; Raise flag to VBI that this row has a brick 
+	sta BOOM_REQUEST,y        ; ready to enter in the boom cycle animations.
+	; --------------------------------
+
+    tya 
+    eor #~00000111
+    tay
+    
+	inx
+	inx
 	
 	dey
 	bpl ?Next_Row    ; Rows 7 to 0
 
 	dex
+	dex
+	dex
+	dex
+	
 	bpl ?Next_Brick  ; Bricks 13 to 0	
 
-	rts
+	; ------------------------------
+	; Part TWO
+	; ------------------------------
 
+	ldx #13 ; Bricks in the row. 13 to 0
 
-;===============================================================================
-; DIAG DESTROY BRICKS - looping brick by brick destruction.
-;===============================================================================
-; Same function as above destroying bricks row by row
-;===============================================================================
+?Next_Brick_Again
 
-.local
-Diag_DestroyBricks2
+	ldy #7 ; Number of rows,  7 to 0
 
-	ldy #0 ; Number of rows,  0 to 7
-
-?Next_Row
-
-	ldx #0 ; Bricks in the row. 0 to 13
-
-?Next_Brick
-
+?Next_Row_Again
 
 	jsr DestroyBrick ; Remove Brick at X, Y position
 	
@@ -4541,18 +4563,85 @@ Diag_DestroyBricks2
 	sta BOOM_REQUEST,y        ; ready to enter in the boom cycle animations.
 	; --------------------------------
 	
+	dex
+	dex 
+	
 	txa              ; save brick number temporarily.
-	ldx #3   
+	ldx #5
 	jsr WaitFrames   ; Pause for X frames
 	tax              ; get Brick number back.
-	
-	inx
-	cpx #14
-	bne ?Next_Brick  ; Bricks 0 to 13	
 
-	iny
-	cpy #8
-	bne ?Next_Row    ; Rows 0 to 7
+    tya 
+    eor #~00000111
+    tay
+    
+	jsr DestroyBrick ; Remove Brick at X, Y position
+	
+    ; --------------------------------
+	txa                       ; Transfer Brick number to Accumulator
+	sta BOOM_REQUEST_BRICK,y  ; Store brick number in the boom request for this row
+	lda #1                    ; Raise flag to VBI that this row has a brick 
+	sta BOOM_REQUEST,y        ; ready to enter in the boom cycle animations.
+	; --------------------------------
+
+    tya 
+    eor #~00000111
+    tay
+    
+	inx
+	inx
+	
+	dey
+	bpl ?Next_Row_Again    ; Rows 7 to 0
+
+	dex
+	dex
+	dex
+	dex
+	
+	bpl ?Next_Brick_Again  ; Bricks 13 to 0	
+
+	rts
+
+
+;===============================================================================
+; DIAG DESTROY BRICKS - looping brick by brick destruction.
+;===============================================================================
+; Same function as above destroying random bricks.
+;===============================================================================
+
+.local
+Diag_DestroyBricks2
+
+	lda #0
+	sta V_TEMP
+
+Loop_Destroy2	
+	lda RANDOM
+	and #~00000111
+    tay
+    
+Try_Brick_Again
+	lda RANDOM
+	and #~00001111
+	cmp #15
+	bcs Try_Brick_Again
+	tax
+
+	jsr DestroyBrick ; Remove Brick at X, Y position
+	
+    ; --------------------------------
+	txa                       ; Transfer Brick number to Accumulator
+	sta BOOM_REQUEST_BRICK,y  ; Store brick number in the boom request for this row
+	lda #1                    ; Raise flag to VBI that this row has a brick 
+	sta BOOM_REQUEST,y        ; ready to enter in the boom cycle animations.
+	; --------------------------------
+	
+	ldx #3
+	jsr WaitFrames   ; Pause for X frames
+
+	inc V_TEMP
+	bne Loop_Destroy2 ; 256 times.   when it is 0 again it ends.
 
 	rts
 
