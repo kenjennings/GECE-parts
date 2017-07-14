@@ -108,3 +108,25 @@ The horizontal lines appearing above and below the bricks are part of the debugg
 
 
 
+
+=============================================================
+
+Boom Bricks Playfield Animation
+
+=============================================================
+
+[![BricksScrollScreenGrab](https://github.com/kenjennings/GECE-parts/blob/master/parts-bricks-scroll-pic.png)](#features)
+ 
+Video Here: https://youtu.be/kLrhFrXUn2U
+
+Another level up for the playfield. Brick destruction is animated.  When struck, the brick glows brightly and instantly expands slightly in size, then shrinks and fades away. 
+
+This is done using two Players allowing two animations to occur at the same time.  Display list interrupts change positions and colors of the Players for each row allowing two exploding brick animations for each row. The actual animation images are updated during the vertical blank. 
+
+Since the entire disappearing trick is done by Players and not playfield images, the playfield scrolling to introduce new bricks can begin while the animation is still playing. 
+
+This is really overkill for the scope of Breakout.  Maybe the worst case for a maximum speed rebound from the top border could require two animations playing at the same time.  This module supports 16 simultaneous animations.  For all practical purposes the game could probably get by without the display list interrupts for each row and use only the two players to manage two simultaneous explosions.
+
+There is a little display glitch I'm trying to work out.  The first scan line of the first frames of the expanded brick image are missing part of the image on the left most column of bricks. Not sure if this is a Display List Interrupt timing situation or if something else is messing up the image.  It somehow seems that brick column 0 is having corrupted image data copied for the animation cells... which seems impossible if it works for other columns.... thinking.... I'm thinking....
+
+
