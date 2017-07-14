@@ -580,20 +580,17 @@ M_TEMP1 = PARAM_89 ; = $d0 ;   -- local temporary value
 ;
 ; MAIN flag to VBI requesting start of screen transition.
 ;
-BRICK_SCREEN_START_SCROLL = PARAM_35
-; .byte 0
+BRICK_SCREEN_START_SCROLL = PARAM_35 ; .byte 0
 ;
 ; MAIN signal to move immediately to target positions if value is 1.
 ; Copy the BRICK_BRICK_SCREEN_TARGET_LMS_LMS and 
 ; BRICK_SCREEN_TARGET_HSCROL to all current positions.
 ;
-BRICK_SCREEN_IMMEDIATE_POSITION = PARAM_36
-; .byte 0
+BRICK_SCREEN_IMMEDIATE_POSITION = PARAM_36 ; .byte 0
 ;
 ; VBI Feedback to MAIN that it is busy moving
 ;
-BRICK_SCREEN_IN_MOTION = PARAM_37
-; .byte 0
+BRICK_SCREEN_IN_MOTION = PARAM_37 ; .byte 0
 ;
 
 
@@ -1172,57 +1169,17 @@ DISPLAY_LIST_THUMPER_RTS ; destination for animation routine return.
 DL_BRICK_BASE
 	; DL_BRICK_BASE+1, +5, +9, +13, +17, +21, +25, +29 is low byte of row.
 	; Only this byte should be needed for scrolling each row.
-
-	; scan line +0 to +4  -- 5 scan lines of mode C copied/extended
-	.byte DL_MAP_C|DL_LMS|DL_VSCROLL|DL_HSCROLL
-	.word [BRICK_LINE0+21] ; offset into center screen
-	; two blank scan line
-	.byte DL_BLANK_2 	
-
-	; scan line +0 to +4  -- 5 scan lines of mode C copied/extended
-	.byte DL_MAP_C|DL_LMS|DL_VSCROLL|DL_HSCROLL
-	.word [BRICK_LINE1+21] ; offset into center screen
-	; two blank scan line
-	.byte DL_BLANK_2 	
+	entry .= 0
+	.rept 8 ; repeat for 8 lines
+		; scan line +0 to +4  -- 5 scan lines of mode C copied/extended
+		.byte DL_MAP_C|DL_LMS|DL_VSCROLL|DL_HSCROLL
+		.word [BRICK_LINE0+entry+21] ; offset into center screen
+		; two blank scan line
+		.byte DL_BLANK_2 	
+		entry .= entry+$40 ; next row + 64 bytes.
+	.endr
 	
-	; scan line +0 to +4  -- 5 scan lines of mode C copied/extended
-	.byte DL_MAP_C|DL_LMS|DL_VSCROLL|DL_HSCROLL
-	.word [BRICK_LINE2+21] ; offset into center screen
-	; two blank scan line
-	.byte DL_BLANK_2 	
-
-	; scan line +0 to +4  -- 5 scan lines of mode C copied/extended
-	.byte DL_MAP_C|DL_LMS|DL_VSCROLL|DL_HSCROLL
-	.word [BRICK_LINE3+21] ; offset into center screen
-	; two blank scan line
-	.byte DL_BLANK_2 	
-	
-
-	; scan line +0 to +4  -- 5 scan lines of mode C copied/extended
-	.byte DL_MAP_C|DL_LMS|DL_VSCROLL|DL_HSCROLL
-	.word [BRICK_LINE4+21] ; offset into center screen
-	; two blank scan line
-	.byte DL_BLANK_2 	
-
-	; scan line +0 to +4  -- 5 scan lines of mode C copied/extended
-	.byte DL_MAP_C|DL_LMS|DL_VSCROLL|DL_HSCROLL
-	.word [BRICK_LINE5+21] ; offset into center screen
-	; two blank scan line
-	.byte DL_BLANK_2 	
-	
-	; scan line +0 to +4  -- 5 scan lines of mode C copied/extended
-	.byte DL_MAP_C|DL_LMS|DL_VSCROLL|DL_HSCROLL
-	.word [BRICK_LINE6+21] ; offset into center screen
-	; two blank scan line
-	.byte DL_BLANK_2 	
-
-	; scan line +0 to +4  -- 5 scan lines of mode C copied/extended
-	.byte DL_MAP_C|DL_LMS|DL_VSCROLL|DL_HSCROLL
-	.word [BRICK_LINE7+21] ; offset into center screen
-	; two blank scan line
-	.byte DL_BLANK_2 	
-	
-	
+		
 ;===============================================================================
 ; ****   ******   **    *****
 ; ** **    **    ****  **  
@@ -1231,26 +1188,6 @@ DL_BRICK_BASE
 ; ** **    **   ****** **  **
 ; ****   ****** **  **  *****
 ;===============================================================================
-
-; DIAGNOSTIC ** START	
-; Temporarily test layout and spacing without the DLI/VSCROL trickery.
-
-;	.byte DL_MAP_C|DL_LMS|DL_HSCROLL
-;	.word BRICK_LINE0+[entry*$40] ; not immediately offset into middle of graphics line
-;	.word [GAMEOVER_LINE0+[entry*20]-2]
-;	.byte DL_MAP_C|DL_LMS|DL_HSCROLL
-;	.word BRICK_LINE0+[entry*$40] ; not immediately offset into middle of graphics line
-;	.word [GAMEOVER_LINE0+[entry*20]-2]
-;	.byte DL_MAP_C|DL_LMS|DL_HSCROLL
-;	.word BRICK_LINE0+[entry*$40] ; not immediately offset into middle of graphics line
-;	.word [GAMEOVER_LINE0+[entry*20]-2]
-;	.byte DL_MAP_C|DL_LMS|DL_HSCROLL
-;	.word BRICK_LINE0+[entry*$40] ; not immediately offset into middle of graphics line
-;	.word [GAMEOVER_LINE0+[entry*20]-2]
-;	.byte DL_MAP_C|DL_LMS|DL_HSCROLL
-;	.word BRICK_LINE0+[entry*$40] ; not immediately offset into middle of graphics line
-;	.word [GAMEOVER_LINE0+[entry*20]-2]
-; DIAGNOSTIC ** END
 
 	; HKernel ends:
 	; set Narrow screen, COLPF2, VSCROLL, COLPF1 for scrolling credit/prompt window.
@@ -1310,24 +1247,6 @@ DL_BRICK_BASE
 
 ; Non-aligned variables and data.
 
-;TEMP ; Need to come back here.
-
-;	*=ZROW_LMS0 ; Create table of the addresses of the LMS instructions
-
-;	entry .= 1
-;	.rept 8
-;		.word [DL_BRICK_BASE+entry] ; DL_BRICK_BASE+1, +5, +9, +13, +17, +21, +25, +29
-;		entry .= entry+4
-;	.endr
-;		.word [DL_BRICK_BASE+5 ] ; Row 1 +5
-;		.word [DL_BRICK_BASE+9 ] ; Row 2 +9
-;		.word [DL_BRICK_BASE+13] ; Row 3 +13
-;		.word [DL_BRICK_BASE+17] ; Row 4 +17
-;		.word [DL_BRICK_BASE+21] ; Row 5 +21 
-;		.word [DL_BRICK_BASE+25] ; Row 6 +25
-;		.word [DL_BRICK_BASE+29] ; Row 7 +29
-
-;	*=TEMP
 
 
 	
@@ -1548,24 +1467,12 @@ DL_BRICK_BASE
 ;
 BRICK_SCREEN_LMS  
 	.byte 0,21,42,0
-	.byte 
-;
-; and reference HSCROL value to align the correct bytes...
-;
-; (This is no longer needed, because we know it is always 0.
-;
-; BRICK_SCREEN_HSCROL 
-;	.byte 0,0,0
+
 ;
 ; Same thing from the opposite movement perspective...
 ;
 BRICK_SCREEN_REVERSE_LMS  
-	.byte 42,21,0
-;
-; (This is no longer needed, because we know it is always 0.
-;
-;BRICK_SCREEN_REVERSE_HSCROL 
-;	.byte 0,0,0
+	.byte 42,21,0,0
 ;
 ; DISPLAY LIST: offset from DL_BRICK_BASE to the low byte of LMS addresses:
 ; DL_BRICK_BASE+1, +5, +9, +13, +17, +21, +25, +29 is low byte of row.
@@ -1582,34 +1489,25 @@ BRICK_LMS_OFFSETS
 ; for that specific row, so the high byte is not needed for these tables.
 ;
 BRICK_SCREEN_LEFT_LMS_TARGET
-    .byte <BRICK_LINE0
-    .byte <BRICK_LINE1
-    .byte <BRICK_LINE2
-    .byte <BRICK_LINE3
-    .byte <BRICK_LINE4
-    .byte <BRICK_LINE5
-    .byte <BRICK_LINE6
-    .byte <BRICK_LINE7
+	entry .= BRICK_LINE0
+	.rept 8 ; repeat for 8 lines
+		.byte <entry
+		entry .= entry+$40 ; next screen row in table.
+	.endr
 ;
 BRICK_SCREEN_CENTER_LMS_TARGET
-    .byte <[BRICK_LINE0+21]
-    .byte <[BRICK_LINE1+21]
-    .byte <[BRICK_LINE2+21]
-    .byte <[BRICK_LINE3+21]
-    .byte <[BRICK_LINE4+21]
-    .byte <[BRICK_LINE5+21]
-    .byte <[BRICK_LINE6+21]
-    .byte <[BRICK_LINE7+21]
+	entry .= BRICK_LINE0
+	.rept 8 ; repeat for 8 lines
+		.byte <[entry+21]
+		entry .= entry+$40 ; next screen row in table.
+	.endr
 ;
 BRICK_SCREEN_RIGHT_LMS_TARGET
-    .byte <[BRICK_LINE0+42]
-    .byte <[BRICK_LINE1+42]
-    .byte <[BRICK_LINE2+42]
-    .byte <[BRICK_LINE3+42]
-    .byte <[BRICK_LINE4+42]
-    .byte <[BRICK_LINE5+42]
-    .byte <[BRICK_LINE6+42]
-    .byte <[BRICK_LINE7+42]
+	entry .= BRICK_LINE0
+	.rept 8 ; repeat for 8 lines
+		.byte <[entry+42]
+		entry .= entry+$40 ; next screen row in table.
+	.endr
 ;
 ; MAIN code sets the TARGET configuration of each line of 
 ; the playfield.  
@@ -1622,34 +1520,26 @@ BRICK_SCREEN_RIGHT_LMS_TARGET
 ; DLI: Current HSCROL/fine scrolling position.
 ;
 BRICK_CURRENT_HSCROL 
-	.byte 0,0,0,0,0,0,0,0
+	.dc 8 $00
 ;
 ; VBI/MAIN: Target HSCROL/fine scrolling destination for moving display.
-;
-; (This is no longer needed, because we know it is always 0.
-;
-;BRICK_SCREEN_TARGET_HSCROL 
-;	.byte 0,0,0,0,0,0,0,0
 ;
 ; Target LMS offset/coarse scroll to move the display. 
 ; One target per display line... line 0 to line 7.
 ; See BRICK_LMS_OFFSETS for actual locations of LMS.
 ;
 BRICK_SCREEN_TARGET_LMS 
-    .byte <[BRICK_LINE0+21]
-    .byte <[BRICK_LINE1+21]
-    .byte <[BRICK_LINE2+21]
-    .byte <[BRICK_LINE3+21]
-    .byte <[BRICK_LINE4+21]
-    .byte <[BRICK_LINE5+21]
-    .byte <[BRICK_LINE6+21]
-    .byte <[BRICK_LINE7+21]
+	entry .= BRICK_LINE0
+	.rept 8 ; repeat for 8 lines
+		.byte <[entry+42]
+		entry .= entry+$40 ; next screen row in table.
+	.endr
 ;
 ; Increment or decrement the movement direction? 
 ; -1=view Left/graphics right, +1=view Right/graphics left
 ;
 BRICK_SCREEN_DIRECTION 
-	.byte 0,0,0,0,0,0,0,0
+	.dc 8 $00
 ;
 ; Table of patterns-in-a-can for direction....
 ;
@@ -1669,7 +1559,7 @@ TABLE_CANNED_BRICK_DIRECTIONS ; random(8) * 8
 ; the ball returns to collide with the bricks.
 ;
 BRICK_SCREEN_HSCROL_MOVE 
-	.byte 4,4,4,4,4,4,4,4
+	.dc 8 $04
 ;
 ; Table of patterns-in-a-can for scroll speed....
 ;
@@ -1685,7 +1575,7 @@ TABLE_CANNED_BRICK_SPEED ; random(4) * 8
 ; collide with the bricks.
 ;
 BRICK_SCREEN_MOVE_DELAY 
-	.byte 0,0,0,0,0,0,0,0
+	.dc 8 $00
 ;
 ; Table of patterns-in-a-can for delaying start of scroll.
 ; Note that a custom delay is chosen ONLY when the scroll
@@ -1700,7 +1590,6 @@ TABLE_CANNED_BRICKS_DELAY
 	.byte 56,48,40,32,24,16,8,0   ; 8 frames each
 	.byte 0,10,20,30,30,20,10,0   ; 1/2 second top/bottom gradient
 	.byte 40,20,30,70,120,20,60,0 ; 2 second randomish 
-
 ;
 ; DLI: Set line colors....  introducing a little more variety than 
 ; the original game and elsewhere on the screen.
@@ -1737,66 +1626,56 @@ TABLE_COLOR_GAME_OVER ; Colors for Game Over Text.
 	.byte COLOR_RED_ORANGE+2  ; "Orange"
 	.byte COLOR_PINK+2        ; "Red"
 	.byte COLOR_PINK+2        ; "Red"
-
-
 ;
 ; MAIN flag to VBI requesting start of screen transition.
 ;
-BRICK_SCREEN_START_SCROLL = PARAM_35
-; .byte 0
+BRICK_SCREEN_START_SCROLL = PARAM_35 ; .byte 0
 ;
 ; MAIN signal to move immediately to target positions if value is 1.
 ; Copy the BRICK_BRICK_SCREEN_TARGET_LMS_LMS and 
 ; BRICK_SCREEN_TARGET_HSCROL to all current positions.
 ;
-BRICK_SCREEN_IMMEDIATE_POSITION = PARAM_36
-; .byte 0
+BRICK_SCREEN_IMMEDIATE_POSITION = PARAM_36 ; .byte 0
 ;
 ; VBI Feedback to MAIN that it is busy moving
 ;
-BRICK_SCREEN_IN_MOTION = PARAM_37
-; .byte 0
+BRICK_SCREEN_IN_MOTION = PARAM_37 ; .byte 0
 ;
 ; Table of starting addresses for each line. 
 ;
 BRICK_LINE_TABLE_LO
-	entry .= 0
+	entry .= BRICK_LINE0
 	.rept 8 ; repeat for 8 lines
-	.byte <[BRICK_LINE0+[entry*64]]
-	entry .= entry+1 ; next entry in table.
+		.byte <entry
+		entry .= entry+$40 ; next entry in table.
 	.endr
 	
 BRICK_LINE_TABLE_HI
-	entry .= 0
+	entry .= BRICK_LINE0
 	.rept 8 ; repeat for 8 lines
-	.byte >[BRICK_LINE0+[entry*64]]
-	entry .= entry+1 ; next entry in table.
+		.byte >entry
+		entry .= entry+$40 ; next entry in table.
 	.endr
 ;
-; Base location of visible bricks (in the middle of the line)
+; Lookup to locate the actual memory used as bricks.
+; Base location of visible bricks (in the middle of the line).
+; LMS tables are offset -2 in case you did not notice.
 ;
 BRICK_CENTER_SCREEN_TABLE_LO
-	.byte <[BRICK_LINE0+23]
-	.byte <[BRICK_LINE1+23]
-	.byte <[BRICK_LINE2+23]
-	.byte <[BRICK_LINE3+23]
-	.byte <[BRICK_LINE4+23]
-	.byte <[BRICK_LINE5+23]
-	.byte <[BRICK_LINE6+23]
-	.byte <[BRICK_LINE7+23]
-	
+	entry .= BRICK_LINE0
+	.rept 8 ; repeat for 8 lines
+		.byte <[entry+23]
+		entry .= entry+$40 ; next entry in table.
+	.endr
+;
 
-	
 BRICK_CENTER_SCREEN_TABLE_HI
-	.byte >[BRICK_LINE0+23]
-	.byte >[BRICK_LINE1+23]
-	.byte >[BRICK_LINE2+23]
-	.byte >[BRICK_LINE3+23]
-	.byte >[BRICK_LINE4+23]
-	.byte >[BRICK_LINE5+23]
-	.byte >[BRICK_LINE6+23]
-	.byte >[BRICK_LINE7+23]
-	
+	entry .= BRICK_LINE0
+	.rept 8 ; repeat for 8 lines
+		.byte >[entry+23]
+		entry .= entry+$40 ; next entry in table.
+	.endr
+
 ;
 ; Mask to erase an individual brick, numbered 0 to 13.
 ; Starting byte offset for visible screen memory, then the AND mask 
@@ -1851,15 +1730,14 @@ BRICK_TEST_TABLE
 	.byte $10, ~00000001, ~11111111, ~10000000
 	.byte $12, ~00111111, ~11110000, ~00000000
 
-
 ;
 ; Table for P/M Xpos of each brick left edge
 ;
 BRICK_XPOS_LEFT_TABLE
 	entry .= 0
 	.rept 14 ; repeat for 14 bricks in a line
-	.byte [MIN_PIXEL_X+[entry*BRICK_WIDTH]]
-	entry .= entry+1 ; next entry in table.
+		.byte [MIN_PIXEL_X+entry]
+		entry .= entry+BRICK_WIDTH; next entry in table.
 	.endr
 ;
 ; Table for P/M Xpos of each brick right edge
@@ -1867,11 +1745,11 @@ BRICK_XPOS_LEFT_TABLE
 BRICK_XPOS_RIGHT_TABLE
 	entry .= 0
 	.rept 14 ; repeat for 14 bricks in a line
-	.byte [PLAYFIELD_LEFT_EDGE_NORMAL+BRICK_RIGHT_OFFSET+[entry*BRICK_WIDTH]]
-	entry .= entry+1 ; next entry in table.
+		.byte [PLAYFIELD_LEFT_EDGE_NORMAL+BRICK_RIGHT_OFFSET+entry]
+		entry .= entry+BRICK_WIDTH ; next entry in table.
 	.endr
 
-
+;
 ; The "PLAYFIELD edge offset" for Y direction defined in the  
 ; custom chip include files is not used here, because the vertical 
 ; display is entirely managed by a custom display list instead of 
@@ -1882,8 +1760,8 @@ BRICK_XPOS_RIGHT_TABLE
 BRICK_YPOS_TOP_TABLE
 	entry .= BRICK_TOP_OFFSET
 	.rept 8 ; repeat for 8 lines of bricks 
-	.byte entry ; [BRICK_TOP_OFFSET+[entry*BRICK_HEIGHT]]
-	entry .= entry+BRICK_HEIGHT ; next entry in table.
+		.byte entry ; [BRICK_TOP_OFFSET+[entry*BRICK_HEIGHT]]
+		entry .= entry+BRICK_HEIGHT ; next entry in table.
 	.endr
 ;
 ; Table for P/M Ypos of each brick bottom edge
@@ -1891,14 +1769,16 @@ BRICK_YPOS_TOP_TABLE
 BRICK_YPOS_BOTTOM_TABLE
 	entry .= BRICK_TOP_END_OFFSET
 	.rept 8 ; repeat for 8 lines of bricks 
-	.byte entry ; [BRICK_TOP_END_OFFSET+[entry*BRICK_HEIGHT]]
-	entry .= entry+BRICK_HEIGHT ; next entry in table.
+		.byte entry ; [BRICK_TOP_END_OFFSET+[entry*BRICK_HEIGHT]]
+		entry .= entry+BRICK_HEIGHT ; next entry in table.
 	.endr
 
 
 ; DL_BRICK_BASE+1, +5, +9, +13, +17, +21, +25, +29 is low byte of row.
-
-;BRICK_LINE_MASTER
+;
+; FYI:
+;
+; BRICK_LINE_MASTER
 ;	.byte ~00011111, ~11111011, ~11111111, ~01111111, ~11101111 ; 0, 1, 2, 3
 ;	.byte ~11111101, ~11111111, ~10111111, ~11110111, ~11111110 ; 3, 4, 5, 6
 ;	.byte ~11111111, ~11011111, ~11111011, ~11111111, ~01111111 ; 7, 8, 9, 10
@@ -1958,39 +1838,36 @@ BALL_YPOS_TO_BRICK_TABLE
 ; Pointers to data to draw the Title screen logo
 ;
 LOGO_LINE_TABLE_LO
-	entry .= 0
+	entry .= LOGO_LINE0
 	.rept 8 ; repeat for 8 rows
-	.byte <[LOGO_LINE0+[entry*19]]
-	entry .= entry+1 ; next entry in table.
+		.byte <entry
+		entry .= entry+19 ; next entry in table.
 	.endr
 	
 LOGO_LINE_TABLE_HI
-	entry .= 0
+	entry .= LOGO_LINE0
 	.rept 8 ; repeat for 8 rows
-	.byte >[LOGO_LINE0+[entry*19]]
-	entry .= entry+1 ; next entry in table.
+		.byte >entry
+		entry .= entry+19 ; next entry in table.
 	.endr
 ;
 ; Pointers to data to draw the Game Over screen
 ;
 GAMEOVER_LINE_TABLE_LO
-	entry .= 0
+	entry .= GAMEOVER_LINE0
 	.rept 8 ; repeat for 8 rows
-	.byte <[GAMEOVER_LINE0+[entry*16]]
-	entry .= entry+1 ; next entry in table.
+		.byte <entry
+		entry .= entry+16 ; next entry in table.
 	.endr
 
 GAMEOVER_LINE_TABLE_HI
-	entry .= 0
+	entry .= GAMEOVER_LINE0
 	.rept 8 ; repeat for 8 rows
-	.byte >[GAMEOVER_LINE0+[entry*16]]
-	entry .= entry+1 ; next entry in table.
+		.byte >entry
+		entry .= entry+16 ; next entry in table.
 	.endr
 
 
-	
-	
-	
 	
 	
 	
@@ -2018,40 +1895,39 @@ GAMEOVER_LINE_TABLE_HI
 ; Side note -- maybe a future iteration will utilize the boom-o-matic blocks 
 ; during Title or Game Over sequences.
 
-ENABLE_BOOM = PARAM_38
-; .byte 0
+ENABLE_BOOM = PARAM_38 ; .byte 0
 
 BOOM_REQUEST 
-	.byte 0,0,0,0,0,0,0,0 ; MAIN provides flag to add this brick. 0 = no brick. 1 = new brick.
+	.dc 8 $00 ; MAIN provides flag to add this brick. 0 = no brick. 1 = new brick.
 
 BOOM_REQUEST_BRICK 
-	.byte 0,0,0,0,0,0,0,0 ; MAIN provides brick number in this row. 0 - 13
+	.dc 8 $00 ; MAIN provides brick number in this row. 0 - 13
 
 
 BOOM_1_CYCLE 
-	.byte 0,0,0,0,0,0,0,0 ; VBI needs one for each row (0 = no animation)
+	.dc 8 $00 ; VBI needs one for each row (0 = no animation)
 BOOM_2_CYCLE 
-	.byte 0,0,0,0,0,0,0,0 ; VBI needs one for each row
+	.dc 8 $00 ; VBI needs one for each row
 
 BOOM_1_BRICK 
-	.byte 0,0,0,0,0,0,0,0 ; VBI uses Brick number on the row doing the Boom Cycle.
+	.dc 8 $00 ; VBI uses Brick number on the row doing the Boom Cycle.
 BOOM_2_BRICK 
-	.byte 0,0,0,0,0,0,0,0 ; VBI uses Brick number on the row doing the Boom Cycle.
+	.dc 8 $00 ; VBI uses Brick number on the row doing the Boom Cycle.
 
 BOOM_1_HPOS 
-	.byte 0,0,0,0,0,0,0,0 ; DLI needs HPOS1 for row
+	.dc 8 $00 ; DLI needs HPOS1 for each row
 BOOM_2_HPOS 
-	.byte 0,0,0,0,0,0,0,0 ; DLI needs HPOS2 for row
+	.dc 8 $00 ; DLI needs HPOS2 for each row
 
 BOOM_1_SIZE 
-	.byte 0,0,0,0,0,0,0,0 ; DLI needs P/M SIZE1 for row
+	.dc 8 $00 ; DLI needs P/M SIZE1 for each row
 BOOM_2_SIZE 
-	.byte 0,0,0,0,0,0,0,0 ; DLI needs P/M SIZE2 for row
+	.dc 8 $00 ; DLI needs P/M SIZE2 for each  row
 
 BOOM_1_COLPM 
-	.byte 0,0,0,0,0,0,0,0 ; DLI needs P/M COLPM1 for row
+	.dc 8 $00 ; DLI needs P/M COLPM1 for each row
 BOOM_2_COLPM 
-	.byte 0,0,0,0,0,0,0,0 ; DLI needs P/M COLPM2 for row
+	.dc 8 $00 ; DLI needs P/M COLPM2 for each row
 
 BOOM_CYCLE_HPOS ; by cycle frame -- relative to Brick from BRICK_XPOS_LEFT_TABLE
 	.byte $ff,$ff,$00,$00,$01,$02,$03,$04,$04
@@ -2112,15 +1988,6 @@ BOOM_ANIMATION_FRAMES
 	
 	
 	
-	
-	
-	
-	
-	
-	
-	
-	
-
 
 
 ;===============================================================================
@@ -4021,9 +3888,9 @@ FOREVER
 
 	jsr WaitForScroll ; This does 12b and 12c.
 
-; 13) Pause 2 seconds/120 frames
+; 13) Pause 1 seconds/60 frames
 
-	ldx #120
+	ldx #60
 	jsr WaitFrames
 
 ; ***************
@@ -4069,9 +3936,9 @@ FOREVER
 
 	jsr WaitForScroll ; This does 18b and 18c.
 
-; 19) Pause 2 seconds/120 frames
+; 19) Pause 1 seconds/60 frames
 
-	ldx #120
+	ldx #60
 	jsr WaitFrames
 	
 ; ***************
