@@ -1156,16 +1156,14 @@ THUMPER_SIZE_TABLE
 
 ; VBI sets the color of the thumper based on 
 ; the distance of the ball determined by the MAIN
-; routine where distance == 
-; for X is ABS((BallX - BorderX)) / 2
-; for Y is ABS((BallX - BorderX)) / 4  
+; routine.
 ; (These colors are set when a thumper anim is NOT in progress).
 ; Therefore, adjusted distance 1 to 8 have a color.
 ; Distance 9 is black.  (maybe we'll make it very grey)
 ; Thumper animation (distance 0 ) is white.
 ; greater than 15 is color $02
 THUMPER_PROXIMITY_COLOR
-	.byte $0E,$7E,$7E,$7C,$7C,$7A,$78,$78,$76,$76,$74,$74,$72,$72,$70,$70,$02,$02
+	.byte $9E,$8E,$7E,$6C,$5C,$4A,$98,$96,$96,$94,$94,$92,$92,$90,$90,$04,$02
 
 
 
@@ -1401,9 +1399,6 @@ Loop_Next_Thumper
 	bne Update_Thumper_Frame
 	
 Check_Thumper_Anim 	
-	lda V_20FPS_TICKER          ; If the 20FPS clock has not ticked to 0...
-	bne Next_Thumper_Bumper     ; then do not advance frame. Skip to next bumper check.
-
 	ldy THUMPER_FRAME,x         ; Is Anim in progress? 
 	bne Thumper_Frame_Inc       ; Yes. no proximity color change.
 	                            ; No animation running.
@@ -1416,6 +1411,9 @@ Check_Thumper_Anim
 	jmp Next_Thumper_Bumper
 
 Thumper_Frame_Inc
+	lda V_15FPS_TICKER          ; If the 20FPS clock has not ticked to 0...
+	bne Next_Thumper_Bumper     ; then do not advance frame. Skip to next bumper check.
+	
 	ldy THUMPER_FRAME,x         ; Get current Frame
 	beq Next_Thumper_Bumper     ; 0. No animation. Done.
 	iny                         ; next frame.
@@ -1706,20 +1704,7 @@ FOREVER
 	
 	jsr WaitFrame ; Wait for VBI to run.
 ;	jsr WaitFrame ; Wait for VBI to run.
-;	jsr WaitFrame ; Wait for VBI to run.
-;	jsr WaitFrame ; Wait for VBI to run.
-;	jsr WaitFrame ; Wait for VBI to run.
-;	jsr WaitFrame ; Wait for VBI to run.
-;	jsr WaitFrame ; Wait for VBI to run.
-;	jsr WaitFrame ; Wait for VBI to run.
-;	jsr WaitFrame ; Wait for VBI to run.
-;	jsr WaitFrame ; Wait for VBI to run.
-;	jsr WaitFrame ; Wait for VBI to run.
-;	jsr WaitFrame ; Wait for VBI to run.
-;	jsr WaitFrame ; Wait for VBI to run.
-;	jsr WaitFrame ; Wait for VBI to run.
-;	jsr WaitFrame ; Wait for VBI to run.
-;	jsr WaitFrame ; Wait for VBI to run.
+
 
 ; Minimal Ball stuff.
 
@@ -1782,35 +1767,27 @@ BALL_END_Y
 ; Calculate proximity top only when moving up
 	lda ZDIR_Y
 	bpl ?Calculate_Proximity_Left; Moving down.  Skip this.
-	clc
 	lda BALL_NEW_Y
-	adc #3            ; Add 3, so only one perfect position triggers 0 proximity.
 	sec
-	sbc #MIN_PIXEL_Y
-	lsr a             ; divide by 4...
-	lsr a             ; resulting in 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3...
+	sbc #MIN_PIXEL_Y+1 
 	sta THUMPER_PROXIMITY_TOP
 	
 ; Calculate proximity left only when moving left
 ?Calculate_Proximity_Left
 	lda ZDIR_X
 	bpl ?Calculate_Proximity_Right ; Moving right.  Skip Left.
-	clc
 	lda BALL_NEW_X
-	adc #1            ; Add 1, so only one perfect position triggers 0 proximity
 	sec
-	sbc #MIN_BALL_X
-	lsr a             ; divide by 2 resulting in 0, 1, 1, 2, 2, 3, 3...
+	sbc #MIN_BALL_X+1 
 	sta THUMPER_PROXIMITY_LEFT
 
 	jmp End_Calculate_Proximity
 	
 ; Calculate proximity right only when moving right
 ?Calculate_Proximity_Right
-	lda #MAX_BALL_X+1 ; Plus 1, so only one perfect position triggers 0 proximity.
+	lda #MAX_BALL_X
 	sec
 	sbc BALL_NEW_X
-	lsr a             ; divide by 2 resulting in 0, 1, 1, 2, 2, 3, 3...
 	sta THUMPER_PROXIMITY_RIGHT
 
 End_Calculate_Proximity
