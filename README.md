@@ -115,7 +115,7 @@ Boom Bricks Playfield Animation
 
 =============================================================
 
-[![BricksBoomScreenGrab](https://github.com/kenjennings/GECE-parts/blob/master/parts-bricks-boom-pic.png)](#features)
+[![BricksBoomScreenGrab](https://github.com/kenjennings/GECE-parts/blob/master/parts-breakout-bricks-boom.png)](#features)
  
 Video Here: https://youtu.be/kLrhFrXUn2U
 
