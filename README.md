@@ -117,7 +117,7 @@ Boom Bricks Playfield Animation
 
 [![BricksBoomScreenGrab](https://github.com/kenjennings/GECE-parts/blob/master/parts-breakout-bricks-boom.png)](#features)
  
-Video Here: https://youtu.be/kLrhFrXUn2U
+Video Here: https://youtu.be/lIWNLIQB6A0
 
 Another level up for the playfield. Brick destruction is animated.  When struck, the brick glows brightly and instantly expands slightly in size, then shrinks and fades away. 
 
