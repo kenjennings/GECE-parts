@@ -44,7 +44,7 @@
 	.include "POKEY.asm"
 	.include "PIA.asm"
 	.include "OS.asm"
-	.include "DOS.asm" ; This provides the LOMEM, start, and run addresses.
+	.include "DOS.asm" ; This provides the LOMEM, start, and run addresses. 
 
 	.include "macros.asm"
 
