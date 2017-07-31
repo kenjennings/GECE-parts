@@ -1598,34 +1598,34 @@ BRICK_CURRENT_COLOR ; Base color for brick gradients
 	.ds 8 ; 8 bytes, one for each row.       
 
 TABLE_COLOR_TITLE ; Colors for title screen.  R a i n b o w
-	.byte COLOR_ORANGE1+2
-	.byte COLOR_RED_ORANGE+2
-	.byte COLOR_PURPLE+2
-	.byte COLOR_BLUE1+2
-	.byte COLOR_LITE_BLUE+2
-	.byte COLOR_BLUE_GREEN+2
-	.byte COLOR_YELLOW_GREEN+2
-	.byte COLOR_LITE_ORANGE+2
+	.byte COLOR_ORANGE1+4
+	.byte COLOR_RED_ORANGE+4
+	.byte COLOR_PURPLE+4
+	.byte COLOR_BLUE1+4
+	.byte COLOR_LITE_BLUE+4
+	.byte COLOR_BLUE_GREEN+4
+	.byte COLOR_YELLOW_GREEN+4
+	.byte COLOR_LITE_ORANGE+4
 
 TABLE_COLOR_BRICKS ; Colors for normal game bricks.
-	.byte COLOR_PINK+2        ; "Red"
-	.byte COLOR_PINK+2        ; "Red"
-	.byte COLOR_RED_ORANGE+2  ; "Orange"
-	.byte COLOR_RED_ORANGE+2  ; "Orange"
-	.byte COLOR_GREEN+2       ; "Green"
-	.byte COLOR_GREEN+2       ; "Green"
-	.byte COLOR_LITE_ORANGE+2 ; "Yellow"
-	.byte COLOR_LITE_ORANGE+2 ; "Yellow"
+	.byte COLOR_PINK+4        ; "Red"
+	.byte COLOR_PINK+4        ; "Red"
+	.byte COLOR_RED_ORANGE+4  ; "Orange"
+	.byte COLOR_RED_ORANGE+4  ; "Orange"
+	.byte COLOR_GREEN+4       ; "Green"
+	.byte COLOR_GREEN+4       ; "Green"
+	.byte COLOR_LITE_ORANGE+4 ; "Yellow"
+	.byte COLOR_LITE_ORANGE+4 ; "Yellow"
 
 TABLE_COLOR_GAME_OVER ; Colors for Game Over Text.
-	.byte COLOR_ORANGE1+2  ; 
-	.byte COLOR_ORANGE1+2  ; 
-	.byte COLOR_ORANGE2+2  ; 
-	.byte COLOR_ORANGE2+2  ; 
-	.byte COLOR_RED_ORANGE+2  ; "Orange"
-	.byte COLOR_RED_ORANGE+2  ; "Orange"
-	.byte COLOR_PINK+2        ; "Red"
-	.byte COLOR_PINK+2        ; "Red"
+	.byte COLOR_ORANGE1+4  ; 
+	.byte COLOR_ORANGE1+4  ; 
+	.byte COLOR_ORANGE2+4  ; 
+	.byte COLOR_ORANGE2+4  ; 
+	.byte COLOR_RED_ORANGE+4  ; "Orange"
+	.byte COLOR_RED_ORANGE+4  ; "Orange"
+	.byte COLOR_PINK+4        ; "Red"
+	.byte COLOR_PINK+4        ; "Red"
 ;
 ; MAIN flag to VBI requesting start of screen transition.
 ;
@@ -1959,22 +1959,22 @@ TIMES_NINE
 ; prior to serving a new ball.
 ;	
 BOOM_CYCLE_COLOR ; by row by cycle frame -- 9 frames per boom animation
-	.byte $0E,COLOR_LITE_ORANGE|$0E,         COLOR_PINK|$0C,         COLOR_PINK|$0A,         COLOR_PINK|$08,         COLOR_PINK|$06,         COLOR_PINK|$04, $02,$00
-	.byte $0E,COLOR_LITE_ORANGE|$0E,         COLOR_PINK|$0C,         COLOR_PINK|$0A,         COLOR_PINK|$08,         COLOR_PINK|$06,         COLOR_PINK|$04, $02,$00
-	.byte $0E,COLOR_LITE_ORANGE|$0E,   COLOR_RED_ORANGE|$0C,   COLOR_RED_ORANGE|$0A,   COLOR_RED_ORANGE|$08,   COLOR_RED_ORANGE|$06,   COLOR_RED_ORANGE|$04, $02,$00
-	.byte $0E,COLOR_LITE_ORANGE|$0E,   COLOR_RED_ORANGE|$0C,   COLOR_RED_ORANGE|$0A,   COLOR_RED_ORANGE|$08,   COLOR_RED_ORANGE|$06,   COLOR_RED_ORANGE|$04, $02,$00
-	.byte $0E,COLOR_LITE_ORANGE|$0E,        COLOR_GREEN|$0C,        COLOR_GREEN|$0A,        COLOR_GREEN|$08,        COLOR_GREEN|$06,        COLOR_GREEN|$04, $02,$00
-	.byte $0E,COLOR_LITE_ORANGE|$0E,        COLOR_GREEN|$0C,        COLOR_GREEN|$0A,        COLOR_GREEN|$08,        COLOR_GREEN|$06,        COLOR_GREEN|$04, $02,$00
-	.byte $0E,COLOR_LITE_ORANGE|$0E,  COLOR_LITE_ORANGE|$0C,  COLOR_LITE_ORANGE|$0A,  COLOR_LITE_ORANGE|$08,  COLOR_LITE_ORANGE|$06,  COLOR_LITE_ORANGE|$04, $02,$00
-	.byte $0E,COLOR_LITE_ORANGE|$0E,  COLOR_LITE_ORANGE|$0C,  COLOR_LITE_ORANGE|$0A,  COLOR_LITE_ORANGE|$08,  COLOR_LITE_ORANGE|$06,  COLOR_LITE_ORANGE|$04, $02,$00
+	.byte $0E, COLOR_LITE_ORANGE|$0E,        COLOR_PINK|$0C,        COLOR_PINK|$0A,        COLOR_PINK|$08,        COLOR_PINK|$06,        COLOR_PINK|$04,        COLOR_PINK|$02, $00
+	.byte $0E, COLOR_LITE_ORANGE|$0E,        COLOR_PINK|$0C,        COLOR_PINK|$0A,        COLOR_PINK|$08,        COLOR_PINK|$06,        COLOR_PINK|$04,        COLOR_PINK|$02, $00
+	.byte $0E, COLOR_LITE_ORANGE|$0E,  COLOR_RED_ORANGE|$0C,  COLOR_RED_ORANGE|$0A,  COLOR_RED_ORANGE|$08,  COLOR_RED_ORANGE|$06,  COLOR_RED_ORANGE|$04,  COLOR_RED_ORANGE|$02, $00
+	.byte $0E, COLOR_LITE_ORANGE|$0E,  COLOR_RED_ORANGE|$0C,  COLOR_RED_ORANGE|$0A,  COLOR_RED_ORANGE|$08,  COLOR_RED_ORANGE|$06,  COLOR_RED_ORANGE|$04,  COLOR_RED_ORANGE|$02, $00
+	.byte $0E, COLOR_LITE_ORANGE|$0E,       COLOR_GREEN|$0C,       COLOR_GREEN|$0A,       COLOR_GREEN|$08,       COLOR_GREEN|$06,       COLOR_GREEN|$04,       COLOR_GREEN|$02, $00
+	.byte $0E, COLOR_LITE_ORANGE|$0E,       COLOR_GREEN|$0C,       COLOR_GREEN|$0A,       COLOR_GREEN|$08,       COLOR_GREEN|$06,       COLOR_GREEN|$04,       COLOR_GREEN|$02, $00
+	.byte $0E, COLOR_LITE_ORANGE|$0E, COLOR_LITE_ORANGE|$0C, COLOR_LITE_ORANGE|$0A, COLOR_LITE_ORANGE|$08, COLOR_LITE_ORANGE|$06, COLOR_LITE_ORANGE|$04, COLOR_LITE_ORANGE|$02, $00
+	.byte $0E, COLOR_LITE_ORANGE|$0E, COLOR_LITE_ORANGE|$0C, COLOR_LITE_ORANGE|$0A, COLOR_LITE_ORANGE|$08, COLOR_LITE_ORANGE|$06, COLOR_LITE_ORANGE|$04, COLOR_LITE_ORANGE|$02, $00
 
 ; 7 bytes of Player image data per each cycle frame.
 ; The 8th and 9th byte 0 padded, since we are putting 
 ; Times Nine offset table to dual use.
 ;  	
 BOOM_ANIMATION_FRAMES 
-	.byte $FC,$FC,$FC,$FC,$FC,$FC,$FC,$00,$00 ; 7 scan lines, 6 bits * 2 color clocks == 12 color clocks. ; 1
-	.byte $FC,$FC,$FC,$FC,$FC,$FC,$FC,$00,$00 ; 7 scan lines, 6 bits * 2 color clocks == 12 color clocks. ; 2
+	.byte $00,$FC,$FC,$FC,$FC,$FC,$00,$00,$00 ; 7 scan lines, 6 bits * 2 color clocks == 12 color clocks. ; 1
+	.byte $00,$FC,$FC,$FC,$FC,$FC,$00,$00,$00 ; 7 scan lines, 6 bits * 2 color clocks == 12 color clocks. ; 2
 	.byte $00,$F8,$F8,$F8,$F8,$F8,$00,$00,$00 ; 5 scan lines, 5 bits * 2 color clocks == 10 color clocks. ; 3
 	.byte $00,$F8,$F8,$F8,$F8,$F8,$00,$00,$00 ; 5 scan lines, 5 bits * 2 color clocks == 10 color clocks. ; 4
 	.byte $00,$00,$FF,$FF,$FF,$00,$00,$00,$00 ; 3 scan lines, 8 bits * 1 color clocks == 8 color clocks.  ; 5
@@ -2986,7 +2986,7 @@ DLI3_DO_BOOM_AND_BRICKS
 	sta COLPM1
 
 	; Prep to apply color to the BRICK lines
-	ldy BRICK_CURRENT_COLOR,x
+	ldy BRICK_CURRENT_COLOR,x ; color + 4
 
 	; Here we are triggering unnatural behavior in ANTIC.  Resetting
 	; VSCROL to a value larger than the number of scan lines in this 
@@ -3017,6 +3017,8 @@ DLI3_DO_BOOM_AND_BRICKS
 
 	iny
 	iny
+	iny
+	iny ; color + 8
 	sty WSYNC
 	
 ; 1 == LINE 2 of 5 BLOCK	
@@ -3024,25 +3026,31 @@ DLI3_DO_BOOM_AND_BRICKS
 	sty COLPF0                ; scan line 13 (2)
 
 	iny
-	iny	
+	iny
+	iny
+	iny ; color + C	
 	sty WSYNC
 	
 ; 2 == LINE 3 of 5 BLOCK	
 		
 	sty COLPF0                ; scan line 14 (3)
 
-	iny
-	iny
+	dey
+	dey
+	dey
+	dey ; color + 8
 	sty WSYNC
 	
 ; 3 == LINE 4 of 5 BLOCK	
 	
 	sty COLPF0                ; scan line 15 (4)
 
-	iny
-	iny
+	dey
+	dey
+	dey
+	dey ; color + 4
 	sty WSYNC
-	
+		
 ; 4 == LINE 5 of 5 BLOCK	
 	
 	sty COLPF0                ; scan line 0 (5)
@@ -4491,7 +4499,7 @@ Loop_Destroy2
 Try_Brick_Again
 	lda RANDOM
 	and #~00001111
-	cmp #15
+	cmp #14
 	bcs Try_Brick_Again
 	tax
 
