@@ -129,4 +129,17 @@ This is really overkill for the scope of Breakout.  Maybe the worst case for a m
 
 There is a little display glitch I'm trying to work out.  The first scan line of the first frames of the expanded brick image are missing part of the image on the left most column of bricks. Not sure if this is a Display List Interrupt timing situation or if something else is messing up the image.  It somehow seems that brick column 0 is having corrupted image data copied for the animation cells... which seems impossible if it works for other columns.... thinking.... I'm thinking....
 
+UPDATE:  Fixed some issues.  These changes are not included in the current video....
+
+Turns out the display glitch is a DLI timing issue.   Too many things are being changed around one WSYNC and there's just not enough time to do everything.  If the WSYNC is moved to allow the positioning to work, then the colors are off.  Or the size is off.   All these things must be in sync to allow the exploding brick to look consistent in any position. 
+
+One choice is to make the playfield more narrow -- twelve color clocks per brick would provide an extra 14 color clocks of time at the beginning of the line which may be enough.  That would require refactoring all of the playfield graphics.  Not looking forward to that.  Maybe in a later version after the game is completely functional.
+
+If the logic implemented only one exploding brick per row, that would halve the data the DLI copies and it should work.  But, I want two exploding bricks per row, so I am discounting that option.
+
+Alternatively, if there was an extra blank line between rows that would definitely provide the time to change all P/M values  However, that would make the playfield for bricks even taller, and I think it is already at the maximum height reasonable for the game considering all the other visual bells and whistles taking up space on the display.
+
+The best choice for what is already in execution is to not use adjacent scan lines between rows. Cutting off the extra scan line of the exploding brick at the top and botton of the animation reduces the exploding brick to the same height as a normal brick , but the animation still begins with an expanded brick two color clocks wider. This blowup and shrink effect still looks acceptable in this way.  So, this is the option for the game.  (In this case the rows may be changed to have only one blank scan line between them which better compresses the playfield's vertical size -- maybe in a future edition.)
+
+SIDE NOTE:  In the new debug version the brick gradient in the DLI is changed to a dark-to-light-to-dark pattern which looks better than the dark-to-light pattern.
 
