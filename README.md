@@ -1,7 +1,12 @@
 # GECE-parts
-Test/Demo GECE components individually to reduce development/debugging complexity.
+Modularize GECE display parts into individual components to reduce development/debugging complexity.  
  
+There was too much code and too much happeneing on screen with the full program to hope to debug it in one piece. In the first pass of debug/modularization I was folding all the Page 0, other variables, display data, main code, VBI, and DLI code for a displayed part of the screen into one file for test builds and debugging. This worked well enough when I had code already written and I was editing this nearly each day.  However, I reached a point where I needed to reorder Page 0 variables, and the projects turned into a bear.  Then I ran into some personal delays that took me off development for a few weeks and it took several entire editing sessions to get my brain wrapped around the design again.
  
+Therefore, I am taking a step back to examine how the program is structured and built.  A framework is created to keep components separated from each other as much as possible.  Each display part will have its own file for page 0, other variables, displayed data, VBI code, DLI code, etc. and these will be .include'd by the main program.  A few symbols will control which part is built, so the same main file will build a debug-able version of a displayed component, and will eventually build the whole program.
+
+This degree of modularization is still Work In Progress as of 2017-10-03.  The examples documented below are the result of the first attempt to test individual parts.
+
 =============================================================
 
 Breakout Title Line 
